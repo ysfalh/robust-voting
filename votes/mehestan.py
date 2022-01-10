@@ -5,9 +5,10 @@ import numpy as np
 
 class Mehestan(BasicVote):
     def __init__(self, n_alternatives, n_voters, density, p_byzantine=.05, byz_density=.5, voting_resilience=1.,
-                 random_mask=False):
+                 transformation_name="standardization", random_mask=False, seed=123):
         super().__init__(n_alternatives=n_alternatives, n_voters=n_voters, density=density, p_byzantine=p_byzantine,
-                         byz_density=byz_density, random_mask=random_mask, voting_resilience=voting_resilience)
+                         byz_density=byz_density, random_mask=random_mask, voting_resilience=voting_resilience,
+                         transformation_name=transformation_name, seed=seed)
         self.ratings = []
         self.bv_ratings = []
         self.original_preferences = []

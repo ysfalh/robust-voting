@@ -6,16 +6,17 @@ import numpy as np
 
 class BasicVote(Vote):
     def __init__(self, n_alternatives, n_voters, density, p_byzantine=.05, byz_density=.5, voting_resilience=1.,
-                 random_mask=False):
+                 transformation_name="standardization", random_mask=False, seed=123):
         super().__init__(n_alternatives=n_alternatives, n_voters=n_voters, density=density, p_byzantine=p_byzantine,
-                         byz_density=byz_density, random_mask=random_mask)
+                         transformation_name=transformation_name, byz_density=byz_density, random_mask=random_mask,
+                         seed=seed)
         self.voting_resilience = voting_resilience
         self.voting_rights = np.ones(self.n_voters)
 
     def qr_median(self, scores, weights):
-        bnds = ((None, None),)
+        bnds = ((min(0, min(scores)), max(0, max(scores))),)
         f = lambda x: 0.5 * self.voting_resilience * x ** 2 + (weights.T @ np.abs(x - scores)).sum()
-        opt = ShelfOptimizer(tolerance=1e-9, max_iter=100)
+        opt = ShelfOptimizer(tolerance=1e-12, max_iter=10000)
         out = opt.minimize(f, bnds)
 
         return out
@@ -47,5 +48,7 @@ class BasicVote(Vote):
             weights = np.array(
                 [x for voter, x in enumerate(self.voting_rights) if self.mask[voter][alternative] != 0]).reshape(-1, 1)
             out[alternative] = self.qr_median(scores, weights)
+
+        print("ratings: {}".format(ratings))
 
         return out, original_preferences
