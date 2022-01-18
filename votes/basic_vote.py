@@ -13,9 +13,11 @@ class BasicVote(Vote):
         self.voting_resilience = voting_resilience
         self.voting_rights = np.ones(self.n_voters)
 
-    def qr_median(self, scores, weights):
+    def qr_median(self, scores, weights, voting_resilience=None):
+        if voting_resilience is None:
+            voting_resilience = self.voting_resilience
         bnds = ((min(0, min(scores)), max(0, max(scores))),)
-        f = lambda x: 0.5 * self.voting_resilience * x ** 2 + (weights.T @ np.abs(x - scores)).sum()
+        f = lambda x: 0.5 * voting_resilience * x ** 2 + (weights.T @ np.abs(x - scores)).sum()
         opt = ShelfOptimizer(tolerance=1e-12, max_iter=10000)
         out = opt.minimize(f, bnds)
 
