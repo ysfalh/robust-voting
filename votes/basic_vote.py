@@ -5,7 +5,7 @@ from numpy.distutils.system_info import x11_info
 
 from votes.vote import Vote
 from utils.transformations import AffineTransform
-from utils.optimizers import ShelfOptimizer, Dichotomy, dichotomy, derivate
+from utils.optimizers import ShelfOptimizer, Dichotomy, derivate
 
 
 class BasicVote(Vote):
