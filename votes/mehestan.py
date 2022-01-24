@@ -1,17 +1,32 @@
 """ Implementation of Mehestan """
-from votes.basic_vote import BasicVote
+
+from operator import imod
 import numpy as np
+
+from utils.transformations import Rescaling
+from votes.basic_vote import BasicVote
+
+def find_pair(mask, weights, ratings):
+    """ find the most rated pair of alternatives in the mask """
+    
+    def _count_ratings(mask, i, j, weights, ratings):
+        """ counts nb of voters voting for both i and j """
+        return sum((mask[:, i] & mask[:, j] & ((ratings[:, i] - ratings[:, j]) != 0)) * weights)
+
+    best_weight, best_i, best_j = 0, 0, 0
+    for i in range(len(mask[0]) - 1):
+        for j in range(i + 1, len(mask[0])):
+            new_weight = _count_ratings(mask, i, j, weights, ratings)
+            if  new_weight > best_weight:
+                best_weight, best_i, best_j = new_weight, i, j
+    return best_i, best_j
 
 
 class Mehestan(BasicVote):
-    def __init__(self, n_alternatives, n_voters, density, p_byzantine=.05, byz_density=.5, voting_resilience=1.,
-                 transformation_name="standardization", random_mask=False, seed=123):
-        super().__init__(n_alternatives=n_alternatives, n_voters=n_voters, density=density, p_byzantine=p_byzantine,
-                         byz_density=byz_density, random_mask=random_mask, voting_resilience=voting_resilience,
-                         transformation_name=transformation_name, seed=seed)
-        self.ratings = []
-        self.bv_ratings = []
-        self.original_preferences = []
+    def __init__(self, ratings, mask, voting_rights, voting_resilience=1, default_rescaling='min-max'):
+        super().__init__(ratings, mask, voting_rights, voting_resilience)  
+
+        self.default_rescaling = Rescaling(name=default_rescaling)
 
     def learn_scaling(self, voter, ratings):
         scores, weights = [], []
@@ -27,7 +42,7 @@ class Mehestan(BasicVote):
             scores.append(r)
             weights.append(self.voting_rights[voterbis])
 
-        out = self.qr_median(np.array(scores), np.array(weights), voting_resilience=self.voting_resilience * max(ratings[voter]))
+        out = self.qr_median(np.array(scores), np.array(weights), voting_resilience=self.voting_resilience * max(ratings[voter]))  #FIXME check input of qrmed
         return out
 
     def learn_translation(self, voter, ratings, scalings):
@@ -47,61 +62,31 @@ class Mehestan(BasicVote):
         out = self.qr_median(np.array(scores), np.array(weights))
         return out
 
-    def regularize_voting_rights(self, ratings):
-        byzantine = -1
-        n_honest = self.n_voters - 1
-        total_byzantine_rights = self.voting_rights[byzantine]
-        total_voting_rights = sum(self.voting_rights)
-        total_honest_rights = total_voting_rights - total_byzantine_rights
-        # print("Byzantine voting rights ratio: {}%".format(total_byzantine_rights / total_voting_rights))
-        x, y = sorted(ratings[0, :2])
-        w_zero = self.voting_resilience * (max(ratings[0]) - min(ratings[0])) / (y - x)
-        alpha = w_zero / (total_honest_rights - 0.5 * total_voting_rights)
-        if alpha > 0:
-            self.voting_rights = np.array(self.voting_rights) * alpha       # to ensure condition (iii)
-        total_byzantine_rights = self.voting_rights[byzantine]
-        total_voting_rights = sum(self.voting_rights)
-        total_honest_rights = total_voting_rights - total_byzantine_rights
-        print("Condition (iii): {}".format(total_honest_rights >= 0.5 * total_voting_rights + w_zero))
-        cnd_four = True
-        n, m = self.mask.shape
-        for j in range(m):
-            local_honest_rights = sum([x for i, x in enumerate(self.voting_rights)
-                                       if self.mask[i, j] != 0 and i < n_honest])
-            local_byzantine_rights = sum(
-                [x for i, x in enumerate(self.voting_rights) if self.mask[i, j] != 0 and i >= n_honest])
-            bol = (local_honest_rights >= local_byzantine_rights + w_zero)
-            # print("j: {} bol: {}".format(j, bol))
-            honest_pool = [i for i, _ in enumerate(self.voting_rights) if self.mask[i, j] == 0 and i < n_honest]
-            self.rng.shuffle(honest_pool)
-            remaining_honests = len(honest_pool)
-            while remaining_honests != 0 and not bol:
-                # print("honest_pool = {}".format(honest_pool))
-                rand_honest = honest_pool[len(honest_pool) - remaining_honests]
-                remaining_honests += -1
-                self.mask[rand_honest, j] = 1       # to ensure condition (iv)
-                local_honest_rights = sum(
-                    [x for i, x in enumerate(self.voting_rights) if self.mask[i, j] != 0 and i < n_honest])
-                local_byzantine_rights = sum(
-                    [x for i, x in enumerate(self.voting_rights) if self.mask[i, j] != 0 and i >= n_honest])
-                bol = (local_honest_rights >= local_byzantine_rights + w_zero)
-
-            cnd_four = (cnd_four and bol)
-
-        print("Condition (iv): {}".format(cnd_four))
-        print("mask: {}".format(self.mask))
-
+    def init_mehestan(self):
+        """ rescaling using most rated pair of alternatives """
+        a, b = find_pair(self.mask, self.voting_rights, self.ratings)
+        for voter in range(self.n_voters):
+            if self.mask[voter][a] and self.mask[voter][b]:
+                x, y = sorted(self.ratings[voter, [a, b]])
+                self.ratings[voter] = (self.ratings[voter] - x) / (y - x)
+            else:  # if pair not rated by voter
+                print('using alternative scaling')
+                # self.ratings[voter] = self.default_rescaling(self.raings[voter])
+                maxi, mini = max(self.ratings[voter]), min(self.ratings[voter])
+                self.ratings[voter] = (self.ratings[voter] - mini) / (maxi - mini)  #FIXME parametrize
 
     def run(self):
-        self.generate_voting_rights()
-        self.ratings, self.original_preferences, self.bv_ratings = self.generate_data_from_unanimity(mehestan=True)
+        """ run voting algorithm """
+
+        # mehestan normalisation
+        self.init_mehestan()
+
         out = np.zeros(self.n_alternatives)
         scalings = [self.learn_scaling(voter, self.ratings) for voter in range(self.n_voters)]
         translations = [self.learn_translation(voter, self.ratings, scalings) for voter in range(self.n_voters)]
 
         for voter in range(self.n_voters):
             self.ratings[voter, :] = scalings[voter] * self.ratings[voter, :] + translations[voter]
-        self.regularize_voting_rights(self.ratings)
 
         for alternative in range(self.n_alternatives):
             scores = np.array([x for voter, x in enumerate(self.ratings[:, alternative])
@@ -110,6 +95,4 @@ class Mehestan(BasicVote):
                 [x for voter, x in enumerate(self.voting_rights) if self.mask[voter][alternative] != 0]).reshape(-1, 1)
             out[alternative] = self.qr_median(scores, weights)
 
-        # print("ratings: {}".format(ratings))
-
-        return out, self.original_preferences
+        return out

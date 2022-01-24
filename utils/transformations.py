@@ -1,4 +1,5 @@
 import numpy as np
+import math
 
 
 class Transform:
@@ -31,6 +32,23 @@ class AffineTransform(Transform):
         offset = self.offset([x for i, x in enumerate(param) if mask[i] != 0])
         out = slope * param + offset
         return out
+
+
+class Rescaling(Transform):
+
+    def min_max(ratings):
+        """ ratings : ratings of 1 voter """
+        maxi, mini = max(ratings), min(ratings)
+        ratings = (ratings - mini) / (maxi - mini)
+        return ratings
+
+    NAME2FUNC = {'min-max': lambda x : Rescaling.min_max(x)}
+
+    def __init__(self, name='min-max'):
+        self.ratings = Rescaling.NAME2FUNC[name]
+
+    def apply(self, ratings):
+        return self.ratings(ratings)
 
 
 def norm(x, p=2):
