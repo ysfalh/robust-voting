@@ -1,13 +1,18 @@
 """ Implementation of BasicVote """
 
 import numpy as np
+from numpy.distutils.system_info import x11_info
 
 from votes.vote import Vote
 from utils.transformations import AffineTransform
-from utils.optimizers import dichotomy
+from utils.optimizers import ShelfOptimizer, Dichotomy, dichotomy, derivate
 
 
 class BasicVote(Vote):
+    NAME2OPT = {
+        "shelf": ShelfOptimizer,
+        "dichotomy": Dichotomy
+    }
 
     def __init__(self, ratings, mask, voting_rights, voting_resilience=1,
                  transformation_name='standardization'):
@@ -15,15 +20,21 @@ class BasicVote(Vote):
         self.voting_resilience = voting_resilience  # W in the paper
         self.transformation = AffineTransform(name=transformation_name)
 
-    def qr_median(self, scores, weights, voting_resilience=None):
+    def qr_median(self, scores, weights, voting_resilience=None, opt_name="dichotomy"):
         if voting_resilience is None:
             voting_resilience = self.voting_resilience
-        delta = 1
 
-        bnds = (min(0, min(scores)), max(0, max(scores)))
-        out2 = dichotomy(weights, scores, delta=delta, voting_resilience=voting_resilience, bnds=bnds)
+        delta = 1.
+        bounds = ((min(0, min(scores)), max(0, max(scores))),)
+        optimizer = BasicVote.NAME2OPT[opt_name](tolerance=1e-9, max_iter=100)
+        function = lambda x: 0.5 * voting_resilience * x ** 2 + (weights.T @ np.abs(x - scores)).sum()
+        derivative = None
+        if opt_name == "dichotomy":
+            derivative = lambda x: derivate(x, weights, scores, delta, voting_resilience)
+        # if opt_name == "dichotomy", the argument 'function' passed to minimize is useless
+        out = optimizer.minimize(function=function, derivative=derivative, bounds=bounds)
 
-        return out2
+        return out
 
     def run(self):
         """ run voting algorithm """
