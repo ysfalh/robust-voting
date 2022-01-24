@@ -1,0 +1,4 @@
+from tests.test_comparison import test_unanimity_comparison
+from tests.test_unanimity import test_unanimity
+
+test_unanimity_comparison()
