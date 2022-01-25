@@ -23,6 +23,7 @@ class ShelfOptimizer(Optimizer):
 
         return minimum_obj.x
 
+
 class Dichotomy(Optimizer):
     def __init__(self, tolerance=1e-9, max_iter=100):
         super().__init__(tolerance=tolerance, max_iter=max_iter)
@@ -30,9 +31,12 @@ class Dichotomy(Optimizer):
     def minimize(self, derivative=None, bounds=((-1., 1.),), **kwargs):
         inf, sup = bounds[0]
         mid = (inf + sup) / 2
-        for i in range(self.max_iter):
-            if abs(derivative(mid)) <= self.tolerance:
-                return mid
+        n_iter = self.max_iter
+        if bounds[0][1] != bounds[0][0]:
+            n_iter = min(n_iter, int(math.log2(abs(bounds[0][1] - bounds[0][0]) / self.tolerance)))
+        else:
+            n_iter = 1
+        for i in range(n_iter):
             if derivative(mid) > 0:
                 sup = mid
             else:
@@ -42,12 +46,18 @@ class Dichotomy(Optimizer):
         return mid
 
 
-def derivate(x, weights, values, delta=1, voting_resilience=1):
+def derivate(x, weights, values, delta=1, voting_resilience=1, default_val=0.):
+    # TODO: move to basic_vote
     """ computes the derivative of QrMed """
-    deriv = voting_resilience * x
+    deriv = voting_resilience * (x - default_val)
     for value, weight in zip(values, weights):
-        if x <= value:
-            deriv += weight * (math.exp((x - value) / delta) - 1)
-        else:
-            deriv += weight * (1 - math.exp((value - x) / delta))
+        deriv += weight * sign(x - value) * (1 - math.exp(-abs(x - value) / delta))
     return deriv
+
+
+def sign(x):
+    if x > 0:
+        return 1
+    if x < 0:
+        return - 1
+    return 0

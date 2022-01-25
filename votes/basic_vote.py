@@ -20,17 +20,20 @@ class BasicVote(Vote):
         self.voting_resilience = voting_resilience  # W in the paper
         self.transformation = AffineTransform(name=transformation_name)
 
-    def qr_median(self, scores, weights, voting_resilience=None, opt_name="dichotomy"):
+    def qr_median(self, scores, weights, voting_resilience=None, default_val=0., opt_name="shelf"):
         if voting_resilience is None:
             voting_resilience = self.voting_resilience
 
-        delta = 1.
+        delta = 1e-6
         bounds = ((min(0, min(scores)), max(0, max(scores))),)
         optimizer = BasicVote.NAME2OPT[opt_name](tolerance=1e-9, max_iter=100)
-        function = lambda x: 0.5 * voting_resilience * x ** 2 + (weights.T @ np.abs(x - scores)).sum()
+        function = None
         derivative = None
         if opt_name == "dichotomy":
-            derivative = lambda x: derivate(x, weights, scores, delta, voting_resilience)
+            derivative = lambda x: derivate(x, weights, scores, delta, voting_resilience, default_val=default_val)
+        if opt_name == "shelf":
+            function = lambda x: 0.5 * voting_resilience * (x - default_val) ** 2 + (
+                    weights.T @ np.abs(x - scores)).sum()
         # if opt_name == "dichotomy", the argument 'function' passed to minimize is useless
         out = optimizer.minimize(function=function, derivative=derivative, bounds=bounds)
 
