@@ -42,7 +42,8 @@ class Mehestan(BasicVote):
             scores.append(r)
             weights.append(self.voting_rights[voterbis])
 
-        out = self.qr_median(np.array(scores), np.array(weights), voting_resilience=self.voting_resilience * max(ratings[voter]))  #FIXME check input of qrmed
+        out = self.qr_median(np.array(scores), np.array(weights), voting_resilience=self.voting_resilience * max(
+            np.abs(ratings[voter])))  # FIXME check input of qrmed
         return out
 
     def learn_translation(self, voter, ratings, scalings):
