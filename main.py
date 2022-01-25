@@ -1,14 +1,12 @@
 from numpy.random import default_rng
-from plots.boxplot import disp_boxplot
-from tests.compare import comparative_runs
+from tests.compare import run_plot
 
 
 SEED = 4
 RNG = default_rng(SEED)
 
-bv_corr, bv_p, mh_corr, mh_p = comparative_runs(
-    n_attempts=10, n_voters=20, n_extreme=0, n_alternatives=100,
-    density=0.1, noise=0., byz_density=1., regularize=True, p_byzantine=0.49, voting_resilience=1,
-    rng=RNG
-)
-disp_boxplot(bv_corr, bv_p, mh_corr, mh_p, whis=float("inf"), labels=["BasicVote", "Mehestan"])
+DEFAULTS = {'n_attempts':5, 'n_voters':10, 'n_extreme':0, 'n_alternatives':30, 'density':0.1,    
+    'noise':0, 'p_byzantine':0.4, 'byz_density':1., 'voting_resilience':1.,
+     'transformation_name':"min-max", 'regularize':True,}
+
+run_plot(density=[0.05, 0.1, 0.2, 0.3], rng=RNG, dic=DEFAULTS)
