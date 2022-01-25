@@ -33,7 +33,7 @@ def regularize_voting_rights(ratings, voting_rights, mask, voting_resilience=1, 
         total_byzantine_rights = voting_rights[byzantine]
         total_voting_rights = sum(voting_rights)
         total_honest_rights = total_voting_rights - total_byzantine_rights
-        print("Condition (iii): {}".format(total_honest_rights >= 0.5 * total_voting_rights + w_zero))
+        # print("Condition (iii): {}".format(total_honest_rights >= 0.5 * total_voting_rights + w_zero))
         cnd_four = True
         n, m = mask.shape
         for j in range(m):
@@ -58,5 +58,5 @@ def regularize_voting_rights(ratings, voting_rights, mask, voting_resilience=1, 
 
             cnd_four = (cnd_four and bol)
 
-        print("Condition (iv): {}".format(cnd_four))
+        # print("Condition (iv): {}".format(cnd_four))
         return voting_rights, mask
