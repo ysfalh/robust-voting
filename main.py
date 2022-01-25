@@ -1,11 +1,9 @@
 from numpy.random import default_rng
-
 from plots.boxplot import disp_boxplot
 from tests.compare import comparative_runs
 
 
 SEED = 4
-# OLD = True
 RNG = default_rng(SEED)
 
 bv_corr, bv_p, mh_corr, mh_p = comparative_runs(
