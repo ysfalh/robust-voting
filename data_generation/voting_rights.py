@@ -35,7 +35,6 @@ def regularize_voting_rights(original_preferences, voting_rights, mask, voting_r
     tmp = (max(original_preferences) - min(original_preferences)) * max(tmp_1, tmp_2)
     safe_margin = 1e-6
     w_zero = voting_resilience * tmp + safe_margin
-    print("W_0: {}".format(w_zero))
     alpha = w_zero / (total_honest_rights - 0.5 * total_voting_rights)
     if alpha > 0:
         voting_rights = np.array(voting_rights) * alpha  # to ensure condition (iii)

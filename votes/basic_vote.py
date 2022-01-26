@@ -20,7 +20,7 @@ class BasicVote(Vote):
         self.voting_resilience = voting_resilience  # W in the paper
         self.transformation = AffineTransform(name=transformation_name)
 
-    def qr_median(self, scores, weights, voting_resilience=None, default_val=0., opt_name="shelf"):
+    def qr_median(self, scores, weights, voting_resilience=None, default_val=0., opt_name="dichotomy"):
         if voting_resilience is None:
             voting_resilience = self.voting_resilience
 
@@ -39,13 +39,13 @@ class BasicVote(Vote):
 
         return out
 
-    def run(self):
+    def run(self, noreg=True):
         """ run voting algorithm """
         # Basic vote normalisation
         for voter in range(self.n_voters):
             self.ratings[voter] = self.transformation.sparse_apply(self.ratings[voter], self.mask[voter, :])
 
-        out = np.zeros(self.n_alternatives)
+        out, out_noreg = np.zeros(self.n_alternatives), np.zeros(self.n_alternatives)
 
         for alternative in range(self.n_alternatives):
             scores = np.array(
@@ -55,4 +55,7 @@ class BasicVote(Vote):
                 [x for voter, x in enumerate(self.voting_rights) if self.mask[voter][alternative] != 0]).reshape(-1, 1)
             out[alternative] = self.qr_median(scores, weights)
 
-        return out
+        if noreg:
+            out_noreg[alternative] = self.qr_median(scores, weights, voting_resilience=0)  # without regularisation
+
+        return out, out_noreg
