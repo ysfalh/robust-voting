@@ -10,7 +10,7 @@ from plots.boxplot import draw_curves, range_boxplot
 def comparative_runs(
     n_attempts=1, n_voters=30, n_extreme=0, n_alternatives=200, 
     density=.01, noise=0, p_byzantine=.45, byz_density=1., voting_resilience=1.,
-     transformation_name="min-max", regularize=True, **kwargs
+     transformation_name="min-max", regularize=True, pair_perc=1., **kwargs
     ):
     """ comparing the voting algorithms on generated data """ 
     bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p = [], [], [], [], [], []
@@ -19,7 +19,7 @@ def comparative_runs(
         # data generation
         ratings, original_preferences, mask = generate_data(
             n_voters, n_extreme, n_alternatives, noise=noise,
-            density=density, byz_density=byz_density, regularize=regularize, **kwargs
+            density=density, byz_density=byz_density, pair_perc=pair_perc, **kwargs
         )
         voting_rights = generate_voting_rights(n_voters, p_byzantine, **kwargs)
         if regularize:
@@ -27,6 +27,8 @@ def comparative_runs(
                 original_preferences, voting_rights, mask, 
                 voting_resilience=voting_resilience, **kwargs
             )
+            d = mask.sum() / (n_voters * n_alternatives)
+            print("Density after regularization: {}".format(d))
 
         # voting with Basic Vote
         bv = BasicVote(
