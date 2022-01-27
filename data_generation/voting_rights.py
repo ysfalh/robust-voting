@@ -11,8 +11,8 @@ def generate_voting_rights(n_voters, p_byzantine, rng=None):
     voting_rights = rng.lognormal(1., 0.5, n_voters)
     voting_rights = [(i + 1 if x == 0 else x) for i, x in enumerate(voting_rights)]
 
-    byzantine = -1  # last position
-    total_honest_rights = sum(voting_rights[:-1])
+    byzantine = n_voters - 1  # last position
+    total_honest_rights = sum(voting_rights[:byzantine])
     voting_rights[byzantine] = total_honest_rights * p_byzantine / (1 - p_byzantine)
 
     return voting_rights
@@ -30,11 +30,12 @@ def regularize_voting_rights(original_preferences, voting_rights, mask, voting_r
     tmp_2 = 0
     for i in range(n_voters):
         for j in range(n_voters):
-            if j > i:
+            if j > i and original_preferences[j] != original_preferences[i]:
                 tmp_2 = max(tmp_2, abs(tmp_1 - 1 / (abs(original_preferences[j] - original_preferences[i]))))
     tmp = (max(original_preferences) - min(original_preferences)) * max(tmp_1, tmp_2)
     safe_margin = 1e-6
     w_zero = voting_resilience * tmp + safe_margin
+    # print("W_0: {}".format(w_zero))
     alpha = w_zero / (total_honest_rights - 0.5 * total_voting_rights)
     if alpha > 0:
         voting_rights = np.array(voting_rights) * alpha  # to ensure condition (iii)
