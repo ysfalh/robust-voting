@@ -33,11 +33,9 @@ def draw_curves(l_lists1, l_lists2, l_lists3, l_params, labels=('', '', ''), tit
     vals2 = np.array([np.mean(vals) for vals in l_lists2])
     vals3 = np.array([np.mean(vals) for vals in l_lists3])
 
-
-    range1 = np.array([1.96 * np.std(vals1) / size for vals in l_lists1])     
-    range2 = np.array([1.96 * np.std(vals2) / size for vals in l_lists2])
-    range3 = np.array([1.96 * np.std(vals3) / size for vals in l_lists3])
-    
+    range1 = np.array([1.96 * np.std(vals) / size for vals in l_lists1])
+    range2 = np.array([1.96 * np.std(vals) / size for vals in l_lists2])
+    range3 = np.array([1.96 * np.std(vals) / size for vals in l_lists3])
 
     plt.plot(l_params, vals1, label=labels[0])
     plt.fill_between(l_params, vals1 - range1, vals1 + range1, alpha=0.1)
