@@ -2,8 +2,6 @@
 
 from operator import imod
 import numpy as np
-
-from utils.transformations import Rescaling
 from votes.basic_vote import BasicVote
 
 
