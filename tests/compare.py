@@ -9,24 +9,26 @@ import json
 
 
 def comparative_runs(
-        n_attempts=1, n_voters=30, n_extreme=0, n_alternatives=200,
-        density=.01, noise=0, p_byzantine=.45, byz_density=1., voting_resilience=1.,
-        transformation_name="min-max", regularize=True, pair_perc=1., rng=None, **kwargs
-):
-    """ comparing the voting algorithms on generated data """
+    n_attempts=1, n_voters=30, n_extreme=0, n_alternatives=200, 
+    density=.01, noise=0, p_byzantine=.45, byz_density=1., byz_strat='random', voting_resilience=1.,
+     transformation_name="min-max", regularize=True, pair_perc=1., **kwargs
+    ):
+    """ comparing the voting algorithms on generated data """ 
     bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p = [], [], [], [], [], []
     for i in range(n_attempts):
 
         # data generation
         ratings, original_preferences, mask = generate_data(
             n_voters, n_extreme, n_alternatives, noise=noise,
-            density=density, byz_density=byz_density, pair_perc=pair_perc, rng=rng, **kwargs
+
+            density=density, byz_density=byz_density, byz_strat=byz_strat,
+            pair_perc=pair_perc, **kwargs
         )
-        voting_rights = generate_voting_rights(n_voters, p_byzantine, rng=rng, **kwargs)
+        voting_rights = generate_voting_rights(n_voters, p_byzantine, **kwargs)
         if regularize:
             voting_rights, mask = regularize_voting_rights(
                 original_preferences, voting_rights, mask,
-                voting_resilience=voting_resilience, rng=rng, **kwargs
+                voting_resilience=voting_resilience, **kwargs
             )
             d = mask.sum() / (n_voters * n_alternatives)
             # print("Density after regularization: {}".format(d))
