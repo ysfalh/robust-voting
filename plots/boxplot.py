@@ -4,6 +4,7 @@ import math
 
 
 def disp_boxplot(bv_corr, bv_p, mh_corr, mh_p, labels=None, whis=None):
+    # TODO: delete this function?
     """ display boxplot of correlations and p_values """
     figure, axis = plt.subplots(1, 2)
     axis[0].set_ylim([0, 1])
@@ -23,7 +24,8 @@ def range_boxplot(l_lists, l_params, title='', x_name=''):
     plt.xlabel(x_name)
     plt.ylabel('Correlation')
     # plt.legend()
-    plt.show()
+    # plt.show()
+    plt.savefig('results/boxplot-{}.png'.format(title))
 
 
 def draw_curves(l_lists1, l_lists2, l_lists3, l_params, labels=('', '', ''), title='Average correlation', x_name=''):
@@ -49,4 +51,5 @@ def draw_curves(l_lists1, l_lists2, l_lists3, l_params, labels=('', '', ''), tit
     plt.xlabel(x_name)
     plt.ylabel('Correlation')
     plt.legend()
-    plt.show()
+    # plt.show()
+    plt.savefig('results/plot-{}.png'.format(title))

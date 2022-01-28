@@ -4,7 +4,7 @@ from data_generation.voting_rights import generate_voting_rights, regularize_vot
 from votes.mehestan import Mehestan
 from votes.basic_vote import BasicVote
 from plots.boxplot import draw_curves, range_boxplot
-
+import json
 
 
 def comparative_runs(
@@ -28,7 +28,7 @@ def comparative_runs(
                 voting_resilience=voting_resilience, **kwargs
             )
             d = mask.sum() / (n_voters * n_alternatives)
-            print("Density after regularization: {}".format(d))
+            # print("Density after regularization: {}".format(d))
 
         # voting with Basic Vote
         bv = BasicVote(
@@ -72,10 +72,16 @@ def auto_run(dic={}, rng=None, **kwargs):
     return l_bv_corr, l_bv_p, l_bv_noreg_corr, l_bv_noreg_p, l_mh_corr, l_mh_p
 
 
+def write_params(params, path='params.json'):
+    with open(path, 'w') as f:
+        json.dump(params, f)
+
+
 def run_plot(dic={}, rng=None, **kwargs):
+    write_params(dic, path='results/params.json')
     for name, values in kwargs.items():  # only 1 iteration
         l_bv_corr, l_bv_p, l_bv_noreg_corr, _l_bv_noreg_p, l_mh_corr, l_mh_p = auto_run(rng=rng, dic=dic, **kwargs)
-        draw_curves(l_bv_corr, l_bv_noreg_corr, l_mh_corr, values, labels=('Basic Vote', 'Basic Vote no regularisation', 'Mehestan'), x_name=name)
-        range_boxplot(l_bv_corr, values, title='Basic Vote', x_name=name)
-        range_boxplot(l_bv_noreg_corr, values, title='Basic Vote no regularisation', x_name=name)
+        draw_curves(l_bv_corr, l_bv_noreg_corr, l_mh_corr, values, labels=('BasicVote+QrMed', 'BasicVote', 'Mehestan'), x_name=name)
+        range_boxplot(l_bv_corr, values, title='BasicVote+QrMed', x_name=name)
+        range_boxplot(l_bv_noreg_corr, values, title='BasicVote', x_name=name)
         range_boxplot(l_mh_corr, values, title='Mehestan', x_name=name)
