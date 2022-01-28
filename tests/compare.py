@@ -9,7 +9,7 @@ import json
 
 def comparative_runs(
     n_attempts=1, n_voters=30, n_extreme=0, n_alternatives=200, 
-    density=.01, noise=0, p_byzantine=.45, byz_density=1., voting_resilience=1.,
+    density=.01, noise=0, p_byzantine=.45, byz_density=1., byz_strat='random', voting_resilience=1.,
      transformation_name="min-max", regularize=True, pair_perc=1., **kwargs
     ):
     """ comparing the voting algorithms on generated data """ 
@@ -19,7 +19,8 @@ def comparative_runs(
         # data generation
         ratings, original_preferences, mask = generate_data(
             n_voters, n_extreme, n_alternatives, noise=noise,
-            density=density, byz_density=byz_density, pair_perc=pair_perc, **kwargs
+            density=density, byz_density=byz_density, byz_strat=byz_strat, 
+            pair_perc=pair_perc, **kwargs
         )
         voting_rights = generate_voting_rights(n_voters, p_byzantine, **kwargs)
         if regularize:
