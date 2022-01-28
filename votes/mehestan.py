@@ -77,7 +77,7 @@ class Mehestan(BasicVote):
                 x, y = sorted(self.ratings[voter, [a, b]])
                 self.ratings[voter] = (self.ratings[voter] - x) / (y - x)
             else:  # if pair not rated by voter
-                print('using alternative scaling')
+                # print('using alternative scaling')
                 self.ratings[voter] = self.transformation.sparse_apply(self.ratings[voter], self.mask[voter, :])
 
     def run(self):

@@ -1,0 +1,1 @@
+{"n_attempts": 10, "n_voters": 50, "n_extreme": 0, "n_alternatives": 100, "density": 0.05, "noise": 0.0, "p_byzantine": 0.33, "byz_density": 0.33, "voting_resilience": 1.0, "transformation_name": "min-max", "pair_perc": 0.8, "regularize": false}

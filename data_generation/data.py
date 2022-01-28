@@ -42,7 +42,7 @@ def gen_style_mask(
     mask[n_voters - n_byz:, :] = rng.binomial(1, byz_density, (n_byz, n_alternatives))
 
     alts = list(range(n_alternatives))
-    random.shuffle(alts)
+    rng.shuffle(alts)
     meh_pair = alts[:2]
 
     return regularize_mask(mask, pair=meh_pair, pair_perc=pair_perc, rng=rng)
