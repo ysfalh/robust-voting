@@ -34,23 +34,6 @@ class AffineTransform(Transform):
         return out
 
 
-class Rescaling(Transform):
-
-    def min_max(ratings):
-        """ ratings : ratings of 1 voter """
-        maxi, mini = max(ratings), min(ratings)
-        ratings = (ratings - mini) / (maxi - mini)
-        return ratings
-
-    NAME2FUNC = {'min-max': lambda x : Rescaling.min_max(x)}
-
-    def __init__(self, name='min-max'):
-        self.ratings = Rescaling.NAME2FUNC[name]
-
-    def apply(self, ratings):
-        return self.ratings(ratings)
-
-
 def norm(x, p=2):
-    out = sum(np.abs(x) ** p) ** (1/p)
+    out = sum(np.abs(x) ** p) ** (1 / p)
     return out
