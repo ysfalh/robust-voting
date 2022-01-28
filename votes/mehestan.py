@@ -71,13 +71,13 @@ class Mehestan(BasicVote):
     def init_mehestan(self):
         """ rescaling using most rated pair of alternatives """
         a, b = find_pair(self.mask, self.voting_rights, self.ratings)
-        print("Pair chosen by Mehestan: {}".format((a, b)))
+        # print("Pair chosen by Mehestan: {}".format((a, b)))
         for voter in range(self.n_voters):
             if self.mask[voter][a] and self.mask[voter][b]:
                 x, y = sorted(self.ratings[voter, [a, b]])
                 self.ratings[voter] = (self.ratings[voter] - x) / (y - x)
             else:  # if pair not rated by voter
-                print('using alternative scaling')
+                # print('using alternative scaling')
                 self.ratings[voter] = self.transformation.sparse_apply(self.ratings[voter], self.mask[voter, :])
 
     def run(self):

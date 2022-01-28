@@ -17,7 +17,11 @@ class AffineTransform(Transform):
                             lambda x: - np.median(x) / (np.quantile(x, .75) - np.quantile(x, .25))),
         "l1-norm": (lambda x: 1 / norm(x, p=1), lambda x: 0),
         "l2-norm": (lambda x: 1 / norm(x, p=2), lambda x: 0),
-        "l2-proj": (lambda x: 1 / norm(x, p=2), lambda x: -np.mean(x) / norm(x, p=2))
+        "l2-proj": (lambda x: 1 / norm(x - np.mean(x), p=2), lambda x: -np.mean(x) / norm(x - np.mean(x), p=2)),
+        "adversarial-0.5": (lambda x: 1 / np.sqrt(np.abs(x - np.mean(x)).sum()),
+                            lambda x: -np.mean(x) / np.sqrt(np.abs(x - np.mean(x)).sum())),
+        "adversarial-0.8": (lambda x: 1 / np.abs(x - np.mean(x)).sum() ** 0.8,
+                            lambda x: -np.mean(x) / np.abs(x - np.mean(x)).sum() ** 0.8)
     }
 
     def __init__(self, name="identity"):
