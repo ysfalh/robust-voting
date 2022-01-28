@@ -1,6 +1,6 @@
 from tests.compare import run_plot
 
-SEED = 1
+SEED = 1    # TODO: make each attempt with a different seed chosen from a predefined list of seeds
 DEFAULTS = {
     'n_attempts': 10, 'n_voters': 25, 'n_extreme': 0, 'n_alternatives': 100, 'density': 0.1,
     'noise': 0., 'p_byzantine': 0.33, 'byz_density': 0.33, 'voting_resilience': 1.,
