@@ -20,9 +20,12 @@ class BasicVote(Vote):
         self.voting_resilience = voting_resilience  # W in the paper
         self.transformation = AffineTransform(name=transformation_name)
 
-    def qr_median(self, scores, weights, voting_resilience=0, default_val=0., opt_name="dichotomy", delta = 1e-6):
+    def qr_median(self, scores, weights, voting_resilience=None, default_val=0., opt_name="dichotomy"):
+        if voting_resilience is None:
+            voting_resilience = self.voting_resilience
 
-        bounds = ((min(0, min(scores)), max(0, max(scores))),)  # why tuple in tuple ?
+        delta = 1e-6
+        bounds = ((min(0, min(scores)), max(0, max(scores))),)
         optimizer = BasicVote.NAME2OPT[opt_name](tolerance=1e-9, max_iter=100)
         function = None
         derivative = None
@@ -50,26 +53,9 @@ class BasicVote(Vote):
                  self.mask[voter][alternative] != 0]).reshape(-1, 1)
             weights = np.array(
                 [x for voter, x in enumerate(self.voting_rights) if self.mask[voter][alternative] != 0]).reshape(-1, 1)
-            out[alternative] = self.qr_median(scores, weights, voting_resilience=self.voting_resilience)
-            if noreg:
-                out_noreg[alternative] = self.qr_median(scores, weights, voting_resilience=0) # without regularisation
-                
+            out[alternative] = self.qr_median(scores, weights)
+
+        if noreg:
+            out_noreg[alternative] = self.qr_median(scores, weights, voting_resilience=0)  # without regularisation
+
         return out, out_noreg
-
-
-class MajJudgment(BasicVote):
-    def __init__(self, ratings, mask, voting_rights):
-        super().__init__(ratings, mask, voting_rights)
-
-    def run(self):
-
-        out = np.zeros(self.n_alternatives)
-
-        for alternative in range(self.n_alternatives):
-            scores = np.array(
-                [x for voter, x in enumerate(self.ratings[:, alternative]) if
-                 self.mask[voter][alternative] != 0]).reshape(-1, 1)
-            weights = np.array(
-                [x for voter, x in enumerate(self.voting_rights) if self.mask[voter][alternative] != 0]).reshape(-1, 1)
-            out[alternative] = self.qr_median(scores, weights, voting_resilience=0, delta=1e-8)  # computing median
-        return out
