@@ -8,8 +8,7 @@ def generate_voting_rights(n_voters, p_byzantine, rng=None):
     
     p_byzantine : importance of the byzantine voter
     """
-    voting_rights = rng.lognormal(1., 0.5, n_voters)
-    voting_rights = [(i + 1 if x == 0 else x) for i, x in enumerate(voting_rights)]
+    voting_rights = rng.random(n_voters)
 
     byzantine = n_voters - 1  # last position
     total_honest_rights = sum(voting_rights[:byzantine])
