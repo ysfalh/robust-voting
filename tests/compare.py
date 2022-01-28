@@ -3,18 +3,19 @@ from data_generation.data import generate_data
 from data_generation.voting_rights import generate_voting_rights, regularize_voting_rights
 from votes.mehestan import Mehestan
 from votes.basic_vote import BasicVote
+from votes.maj_judgement import MajJudement
 from plots.boxplot import draw_curves, range_boxplot
 from numpy.random import default_rng
 import json
 
 
 def comparative_runs(
-    n_attempts=1, n_voters=30, n_extreme=0, n_alternatives=200, 
-    density=.01, noise=0, p_byzantine=.45, byz_density=1., byz_strat='random', voting_resilience=1.,
-     transformation_name="min-max", regularize=True, pair_perc=1., **kwargs
-    ):
-    """ comparing the voting algorithms on generated data """ 
-    bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p = [], [], [], [], [], []
+        n_attempts=1, n_voters=30, n_extreme=0, n_alternatives=200,
+        density=.01, noise=0, p_byzantine=.45, byz_density=1., byz_strat='random', voting_resilience=1.,
+        transformation_name="min-max", regularize=True, pair_perc=1., **kwargs
+):
+    """ comparing the voting algorithms on generated data """
+    mj_corr, mj_p, bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p = [], [], [], [], [], [], [], []
     for i in range(n_attempts):
 
         # data generation
@@ -33,7 +34,14 @@ def comparative_runs(
             d = mask.sum() / (n_voters * n_alternatives)
             # print("Density after regularization: {}".format(d))
 
-        # voting with Basic Vote
+        # voting with MajJudgement
+        mj = MajJudement(ratings, mask, voting_rights)
+        out = mj.run()
+        corr, pval = pearsonr(out, original_preferences)
+        mj_corr.append(corr)
+        mj_p.append(pval)
+
+        # voting with BasicVote
         bv = BasicVote(
             ratings, mask, voting_rights,
             voting_resilience, transformation_name=transformation_name
@@ -55,25 +63,27 @@ def comparative_runs(
         mh_corr.append(corr)
         mh_p.append(pval)
 
-    return bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p
+    return mj_corr, mj_p, bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p
 
 
 def auto_run(dic={}, seed=1, **kwargs):
     """ multiple runs of both algorithms with 1 parameter changing """
-    l_bv_corr, l_bv_p, l_bv_noreg_corr, l_bv_noreg_p, l_mh_corr, l_mh_p = [], [], [], [], [], []
+    l_mj_corr, l_mj_p, l_bv_corr, l_bv_p, l_bv_noreg_corr, l_bv_noreg_p, l_mh_corr, l_mh_p = [], [], [], [], [], [], [], []
     for name, values in kwargs.items():  # only 1 iteration
         for param in values:
             print(name, ':', param)
             dic.pop(name, None)  # remove parameter default value
             rng = default_rng(seed)
-            bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p = comparative_runs(**{name: param}, **dic, rng=rng)
+            mj_corr, mj_p, bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p = comparative_runs(**{name: param}, **dic, rng=rng)
+            l_mj_corr.append(mj_corr)
+            l_mj_p.append(mj_p)
             l_bv_corr.append(bv_corr)
             l_bv_p.append(bv_p)
             l_bv_noreg_corr.append(bv_noreg_corr)
             l_bv_noreg_p.append(bv_noreg_p)
             l_mh_corr.append(mh_corr)
             l_mh_p.append(mh_p)
-    return l_bv_corr, l_bv_p, l_bv_noreg_corr, l_bv_noreg_p, l_mh_corr, l_mh_p
+    return l_mj_corr, l_mj_p, l_bv_corr, l_bv_p, l_bv_noreg_corr, l_bv_noreg_p, l_mh_corr, l_mh_p
 
 
 def write_params(params, path='params.json'):
@@ -84,9 +94,10 @@ def write_params(params, path='params.json'):
 def run_plot(dic={}, seed=1, **kwargs):
     write_params(dic, path='results/params.json')
     for name, values in kwargs.items():  # only 1 iteration
-        l_bv_corr, l_bv_p, l_bv_noreg_corr, _l_bv_noreg_p, l_mh_corr, l_mh_p = auto_run(seed=seed, dic=dic, **kwargs)
-        draw_curves(l_bv_corr, l_bv_noreg_corr, l_mh_corr, values, labels=('BasicVote+QrMed', 'BasicVote', 'Mehestan'),
+        l_mj_corr, l_mj_p, l_bv_corr, l_bv_p, l_bv_noreg_corr, _l_bv_noreg_p, l_mh_corr, l_mh_p = auto_run(seed=seed, dic=dic, **kwargs)
+        draw_curves(l_mj_corr, l_bv_noreg_corr, l_bv_corr, l_mh_corr, values, labels=('MajJudgement', 'BasicVote', 'BasicVote+QrMed', 'Mehestan'),
                     x_name=name)
+        range_boxplot(l_mj_corr, values, title='MajJudgement', x_name=name)
         range_boxplot(l_bv_corr, values, title='BasicVote+QrMed', x_name=name)
         range_boxplot(l_bv_noreg_corr, values, title='BasicVote', x_name=name)
         range_boxplot(l_mh_corr, values, title='Mehestan', x_name=name)
