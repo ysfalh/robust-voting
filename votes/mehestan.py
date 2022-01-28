@@ -64,7 +64,7 @@ class Mehestan(BasicVote):
         if len(scores) == 0:
             return 0.
 
-        out = self.qr_median(np.array(scores), np.array(weights))
+        out = self.qr_median(np.array(scores), np.array(weights), voting_resilience=self.voting_resilience)
         # S = scalings[voter] * (max(ratings[0]) - min(ratings[0])) / abs(ratings[0, 0]-ratings[0, 1])
         return out
 
@@ -98,6 +98,6 @@ class Mehestan(BasicVote):
                                if self.mask[voter][alternative] != 0]).reshape(-1, 1)
             weights = np.array(
                 [x for voter, x in enumerate(self.voting_rights) if self.mask[voter][alternative] != 0]).reshape(-1, 1)
-            out[alternative] = self.qr_median(scores, weights)
+            out[alternative] = self.qr_median(scores, weights, voting_resilience=self.voting_resilience)
 
         return out
