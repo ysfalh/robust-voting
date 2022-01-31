@@ -1,6 +1,4 @@
 """ Implementation of Mehestan """
-
-from operator import imod
 import numpy as np
 from votes.basic_vote import BasicVote
 # import multiprocessing as mp
@@ -26,10 +24,12 @@ def find_pair(mask, weights, ratings):
 
 
 class Mehestan(BasicVote):
-    def __init__(self, ratings, mask, voting_rights, voting_resilience=1, transformation_name='standardization'):
-        super().__init__(ratings, mask, voting_rights, voting_resilience, transformation_name=transformation_name)
+    def __init__(self, ratings, mask, voting_rights, voting_resilience=1, transformation_name='standardization',
+                 n_proc=1):
+        super().__init__(ratings, mask, voting_rights, voting_resilience, transformation_name=transformation_name,
+                         n_proc=n_proc)
 
-    def learn_scaling(self, voter, ratings):
+    def __learn_scaling(self, voter, ratings):
         scores, weights = [], []
         voter_alters = [i for i, x in enumerate(self.mask[voter, :]) if x == 1]
 
