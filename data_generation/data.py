@@ -59,7 +59,7 @@ def create_ortho(vect, rng):
     return new_vect
 
 
-def generate_data(n_voters, n_extreme, n_alternatives, density, noise=0, byz_density=1, byz_strat='ortho', pair_perc=1., rng=None):
+def generate_data(n_voters, n_extreme, n_alternatives, density, noise=0, byz_density=1, byz_strat='anti', pair_perc=1., rng=None):
     """ generates random original preferences, ratings by voters and a mask """
 
     original_preferences = rng.standard_cauchy(n_alternatives)
@@ -83,8 +83,7 @@ def generate_data(n_voters, n_extreme, n_alternatives, density, noise=0, byz_den
             translation = rng.normal(0., 10.)
             scaling = 1e-1 if scaling == 0 else scaling
             ratings[voter] = scaling * original_preferences + translation
-            ratings[voter] += np.round(rng.normal(0, noise * scaling, (n_alternatives,)),
-                                       2)  # adding noise, TODO create dictionnary with names of transfo
+            ratings[voter] += np.round(rng.normal(0, noise * scaling, (n_alternatives,)), 2)  # adding noise, TODO create dictionnary with names of transfo
 
     mask = gen_style_mask(
         n_voters - 2 * n_extreme - 1, n_extreme, n_extreme, n_alternatives, 1,
