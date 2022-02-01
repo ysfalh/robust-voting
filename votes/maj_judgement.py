@@ -29,7 +29,7 @@ class MajJudement(Vote):
 
         return out
 
-    def run(self, noreg=True):
+    def run(self):
         """ run voting algorithm """
         out = np.zeros(self.n_alternatives)
 

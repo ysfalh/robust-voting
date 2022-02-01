@@ -13,7 +13,7 @@ import json
 def comparative_runs(
         n_attempts=1, n_voters=30, n_extreme=0, n_alternatives=200,
         density=.01, noise=0, p_byzantine=.45, byz_density=1., byz_strat='random', voting_resilience=1.,
-        transformation_name="min-max", regularize=True, pair_perc=1., n_proc=1, **kwargs
+        transformation_name="min-max", regularize=True, pair_perc=1., sm3=0, sm4=0, n_proc=1, **kwargs
 ):
     """ comparing the voting algorithms on generated data """
     mj_corr, mj_p, bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p = [], [], [], [], [], [], [], []
@@ -26,13 +26,10 @@ def comparative_runs(
             pair_perc=pair_perc, **kwargs
         )
         voting_rights = generate_voting_rights(n_voters, p_byzantine, **kwargs)
-        if regularize:
-            voting_rights, mask = regularize_voting_rights(
-                original_preferences, voting_rights, mask,
-                voting_resilience=voting_resilience, **kwargs
-            )
-            d = mask.sum() / (n_voters * n_alternatives)
-            # print("Density after regularization: {}".format(d))
+        voting_rights, mask = regularize_voting_rights(
+            original_preferences, voting_rights, mask,
+            voting_resilience=voting_resilience, sm3=sm3, sm4=sm4, **kwargs
+        )
 
         # voting with MajJudgement
         mj = MajJudement(ratings, mask, voting_rights)
