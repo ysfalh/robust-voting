@@ -25,7 +25,7 @@ def range_boxplot(l_lists, l_params, title='', x_name=''):
     plt.ylabel('Correlation')
     # plt.legend()
     # plt.show()
-    plt.savefig('results/boxplot-{}.png'.format(title))
+    plt.savefig('results/boxplot-{}-{}.png'.format(title, x_name))
 
 
 def draw_curves(l_lists1, l_lists2, l_lists3, l_lists4, l_params, labels=('', '', ''), title='Average correlation', x_name=''):
@@ -57,4 +57,4 @@ def draw_curves(l_lists1, l_lists2, l_lists3, l_lists4, l_params, labels=('', ''
     plt.ylabel('Correlation')
     plt.legend()
     # plt.show()
-    plt.savefig('results/plot-{}.png'.format(title))
+    plt.savefig('results/plot-{}-{}.png'.format(title, x_name))

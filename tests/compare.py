@@ -22,7 +22,6 @@ def comparative_runs(
         # data generation
         ratings, original_preferences, mask = generate_data(
             n_voters, n_extreme, n_alternatives, noise=noise,
-
             density=density, byz_density=byz_density, byz_strat=byz_strat,
             pair_perc=pair_perc, **kwargs
         )
