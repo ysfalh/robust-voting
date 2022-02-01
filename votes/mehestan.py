@@ -4,7 +4,7 @@ from votes.basic_vote import BasicVote
 import multiprocess as mp
 
 
-def find_pair(mask, weights, ratings):
+def find_pair(mask, weights, ratings, alt_list=None):
     """ find the most rated pair of alternatives in the mask """
 
     def _count_ratings(mask, i, j, weights, ratings):
@@ -13,7 +13,10 @@ def find_pair(mask, weights, ratings):
 
     best_weight, best_i, best_j = 0, 0, 0
     n_alternatives = mask.shape[1]
-    for i in range(n_alternatives - 1):
+    if alt_list is None:
+        alt_list = range(n_alternatives-1)
+
+    for i in alt_list:
         for j in range(i + 1, n_alternatives):
             new_weight = _count_ratings(mask, i, j, weights, ratings)
             if new_weight > best_weight:
@@ -28,7 +31,7 @@ def multi_find_pair(mask, weights, ratings, pool):
                           range(n_proc)]
 
     def f(alt_list):
-        return find_pair(mask[:, alt_list], weights, ratings)
+        return find_pair(mask, weights, ratings, alt_list=alt_list)
 
     out = max(pool.map(f, alternatives_lists), key=lambda item: item[2])[:2]
     return out
