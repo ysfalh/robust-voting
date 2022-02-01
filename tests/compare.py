@@ -98,4 +98,4 @@ def run_plot(dic={}, seed=1, n_proc=1, **kwargs):
         range_boxplot(l_bv_corr, values, title='BasicVote+QrMed', x_name=name)
         range_boxplot(l_bv_noreg_corr, values, title='BasicVote', x_name=name)
         range_boxplot(l_mh_corr, values, title='Mehestan', x_name=name)
-    print("++DONE++")
+    # print("++DONE++")
