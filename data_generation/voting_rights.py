@@ -51,7 +51,7 @@ def regularize_voting_rights(
     total_byzantine_rights = voting_rights[byzantine]
     total_voting_rights = sum(voting_rights)
     total_honest_rights = total_voting_rights - total_byzantine_rights
-    print("Condition (iii): {}".format(total_honest_rights >= 0.5 * total_voting_rights + sm3 * w_zero - safe_margin))
+    # print("Condition (iii): {}".format(total_honest_rights >= 0.5 * total_voting_rights + sm3 * w_zero - safe_margin))
 
     # --------- SM4 -----------------
     cnd_four = True

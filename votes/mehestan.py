@@ -117,13 +117,11 @@ class Mehestan(BasicVote):
         # mehestan normalisation
         self.__init_mehestan(pool)
 
-        print("Mehestan: computing scaling and translation factors")
         scalings, translations = self.__compute_factors(pool)
 
         for voter in range(self.n_voters):
             self.ratings[voter, :] = scalings[voter] * self.ratings[voter, :] + translations[voter]
 
-        print("Mehestan: computing global scores")
         out = self.multi_compute_global_scores(pool)
 
         return out
