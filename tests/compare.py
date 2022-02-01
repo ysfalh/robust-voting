@@ -68,7 +68,7 @@ def auto_run(dic={}, seed=1, n_proc=1, **kwargs):
     l_mj_corr, l_mj_p, l_bv_corr, l_bv_p, l_bv_noreg_corr, l_bv_noreg_p, l_mh_corr, l_mh_p = [], [], [], [], [], [], [], []
     for name, values in kwargs.items():  # only 1 iteration
         for param in tqdm(values):
-            print(name, ':', param)
+            # print(name, ':', param)
             dic.pop(name, None)  # remove parameter default value
             rng = default_rng(seed)
             mj_corr, mj_p, bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p = comparative_runs(**{name: param}, **dic, rng=rng, n_proc=n_proc)
