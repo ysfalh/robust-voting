@@ -95,23 +95,6 @@ def write_params(params, path='params.json'):
         json.dump(params, f)
 
 
-# def run_plot(defaults={}, seed=1, folder='exp1', **kwargs):
-#     write_params(defaults, path=f'results/{folder}/params.json')
-#     for name, values in kwargs.items():  # only 1 iteration
-#         l_mj_corr, _, l_bv_corr, _, l_bv_noreg_corr, _, l_mh_corr, _ = auto_run(
-#             seed=seed, defaults=defaults, **kwargs
-#         )
-#         draw_curves(
-#             l_mj_corr, l_bv_noreg_corr, l_bv_corr, l_mh_corr, values, 
-#             labels=('MajJudgement', 'BasicVote', 'BasicVote+QrMed', 'Mehestan'),
-#             folder=folder, x_name=name
-#         )
-#         range_boxplot(l_mj_corr, values, folder=folder, title='MajJudgement', x_name=name)
-#         range_boxplot(l_bv_corr, values, folder=folder, title='BasicVote+QrMed', x_name=name)
-#         range_boxplot(l_bv_noreg_corr, values, folder=folder, title='BasicVote', x_name=name)
-#         range_boxplot(l_mh_corr, values, folder=folder, title='Mehestan', x_name=name)
-#     print("++DONE++")
-
 def run_plot(defaults={}, seed=1, folder='exp1', name='', params=[]):
     write_params(defaults, path=f'results/{folder}/params.json')
     l_mj_corr, _, l_bv_corr, _, l_bv_noreg_corr, _, l_mh_corr, _ = auto_run(
@@ -131,7 +114,7 @@ def run_plot(defaults={}, seed=1, folder='exp1', name='', params=[]):
 
 def multiple_experiments(experiments, defaults={}, seed=1):
     """ runs several experiments and saves results """
-    shutil.rmtree('results')
+    shutil.rmtree('results', ignore_errors=True)  # clear results folder
     os.mkdir('results')
     i = 0
     for name, params in experiments.items():
