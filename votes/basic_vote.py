@@ -1,9 +1,9 @@
 """ Implementation of BasicVote """
-
 import numpy as np
 from votes.vote import Vote
 from utils.transformations import AffineTransform
 from utils.optimizers import ShelfOptimizer, Dichotomy, derivate
+import multiprocess as mp
 
 
 class BasicVote(Vote):
@@ -38,24 +38,42 @@ class BasicVote(Vote):
 
         return out
 
+    def __compute_global_scores(self, alternatives_list, noreg=False):
+        out = []
+        voting_resilience = 0. if noreg else self.voting_resilience
+
+        for alternative in alternatives_list:
+            scores = np.array([x for voter, x in enumerate(self.ratings[:, alternative])
+                               if self.mask[voter][alternative] != 0]).reshape(-1, 1)
+            weights = np.array(
+                [x for voter, x in enumerate(self.voting_rights) if self.mask[voter][alternative] != 0]).reshape(-1, 1)
+            out.append(self.qr_median(scores, weights, voting_resilience=voting_resilience))
+
+        return out
+
+    def multi_compute_global_scores(self, pool, noreg=False):
+        n_proc = pool._processes
+        alternatives_lists = [range(p * self.n_alternatives // n_proc, (p + 1) * self.n_alternatives // n_proc) for p in
+                              range(n_proc)]
+
+        def f(x):
+            return self.__compute_global_scores(x, noreg=noreg)
+
+        out = sum(pool.map(f, alternatives_lists), [])
+        out = np.array(out).flatten()
+
+        return out
+
     def run(self, noreg=True):
         """ run voting algorithm """
         # Basic vote normalisation
+        pool = mp.Pool(self.n_proc)
         for voter in range(self.n_voters):
             self.ratings[voter] = self.transformation.sparse_apply(self.ratings[voter], self.mask[voter, :])
 
-        out, out_noreg = np.zeros(self.n_alternatives), np.zeros(self.n_alternatives)
-
-        for alternative in range(self.n_alternatives):
-            scores = np.array(
-                [x for voter, x in enumerate(self.ratings[:, alternative]) if
-                 self.mask[voter][alternative] != 0]).reshape(-1, 1)
-            weights = np.array(
-                [x for voter, x in enumerate(self.voting_rights) if self.mask[voter][alternative] != 0]).reshape(-1, 1)
-            out[alternative] = self.qr_median(scores, weights)
-
-            if noreg:
-                out_noreg[alternative] = self.qr_median(scores, weights, voting_resilience=0)  # without regularisation
+        out = self.multi_compute_global_scores(pool)
+        out_noreg = self.multi_compute_global_scores(pool, noreg=noreg) if noreg else np.zeros(
+            self.n_alternatives)
 
         return out, out_noreg
 

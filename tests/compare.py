@@ -11,15 +11,15 @@ from votes.basic_vote import BasicVote
 from votes.maj_judgement import MajJudement
 from plots.boxplot import draw_curves, range_boxplot
 from numpy.random import default_rng
-
+from tqdm import tqdm
+import json
 
 
 def comparative_runs(
         n_attempts=1, n_voters=30, n_extreme=0, n_alternatives=200,
         density=.01, noise=0, p_byzantine=.45, byz_density=1., byz_strat='random', voting_resilience=1.,
-        transformation_name="min-max", pair_perc=1., sm3=0, sm4=0, **kwargs
+        transformation_name="min-max", regularize=True, pair_perc=1., sm3=0, sm4=0, n_proc=1, **kwargs
 ):
-
     """ comparing the voting algorithms on generated data """
     mj_corr, mj_p, bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p = [], [], [], [], [], [], [], []
     for i in range(n_attempts):
@@ -27,7 +27,6 @@ def comparative_runs(
         # data generation
         ratings, original_preferences, mask = generate_data(
             n_voters, n_extreme, n_alternatives, noise=noise,
-
             density=density, byz_density=byz_density, byz_strat=byz_strat,
             pair_perc=pair_perc, **kwargs
         )
@@ -47,7 +46,7 @@ def comparative_runs(
         # voting with BasicVote
         bv = BasicVote(
             ratings, mask, voting_rights,
-            voting_resilience, transformation_name=transformation_name
+            voting_resilience, transformation_name=transformation_name, n_proc=n_proc
         )
         out, out_noreg = bv.run()
         corr, pval = pearsonr(out, original_preferences)
@@ -60,7 +59,7 @@ def comparative_runs(
         bv_noreg_p.append(pval)
 
         # voting with Mehestan
-        mh = Mehestan(ratings, mask, voting_rights, voting_resilience, transformation_name=transformation_name)
+        mh = Mehestan(ratings, mask, voting_rights, voting_resilience, transformation_name=transformation_name, n_proc=n_proc)
         out = mh.run()
         corr, pval = pearsonr(out, original_preferences)
         mh_corr.append(corr)
@@ -72,7 +71,7 @@ def comparative_runs(
 def auto_run(defaults={}, seed=1, name='', params=[]):
     """ multiple runs of both algorithms with 1 parameter changing """
     l_mj_corr, l_mj_p, l_bv_corr, l_bv_p, l_bv_noreg_corr, l_bv_noreg_p, l_mh_corr, l_mh_p = [], [], [], [], [], [], [], []
-    for param in params:
+    for param in tqdm(params):
         print(name, ':', param)
         defaults.pop(name, None)  # remove parameter default value
         rng = default_rng(seed)
