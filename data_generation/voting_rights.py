@@ -17,6 +17,13 @@ def generate_voting_rights(n_voters, p_byzantine, rng=None):
     return voting_rights
 
 
+def get_density(mask, voting_rights):
+    """ returns weighted density of mask excluding the byzantine user (last position) """
+    n, m = mask.shape
+    weighted = np.sum((mask * voting_rights.reshape((n, 1)))[:-1])
+    return weighted / (np.sum(voting_rights[:-1]) * m)
+
+
 def regularize_voting_rights(
         original_preferences, voting_rights, mask, 
         voting_resilience=1, sm3=0, sm4=0,
@@ -77,5 +84,7 @@ def regularize_voting_rights(
 
         cnd_four = (cnd_four and bol)
 
-    # print("Condition (iv): {}".format(cnd_four))
+    print("Condition (iv): {}".format(cnd_four))
+    print('weighted empirical density :', get_density(mask, voting_rights))
+
     return voting_rights, mask
