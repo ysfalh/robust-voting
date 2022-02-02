@@ -17,9 +17,16 @@ def generate_voting_rights(n_voters, p_byzantine, rng=None):
     return voting_rights
 
 
+def get_density(mask, voting_rights):
+    """ returns weighted density of mask excluding the byzantine user (last position) """
+    n, m = mask.shape
+    weighted = np.sum((mask * voting_rights.reshape((n, 1)))[:-1])
+    return weighted / (np.sum(voting_rights[:-1]) * m)
+
+
 def regularize_voting_rights(
         original_preferences, voting_rights, mask, 
-        voting_resilience=1, sm3=0, sm4=0,
+        voting_resilience=1, sm3=0, sm4=0, n_extreme=0,
         rng=None
     ):
     """ change voting rights to be closer to (SM3) and (SM4) 
@@ -62,8 +69,9 @@ def regularize_voting_rights(
         local_byzantine_rights = sum(
             [x for i, x in enumerate(voting_rights) if mask[i, j] != 0 and i == byzantine])
         bol = (local_honest_rights >= local_byzantine_rights + w_zero * sm4)
-        honest_pool = [i for i, _ in enumerate(voting_rights) if mask[i, j] == 0 and i < byzantine]
-        rng.shuffle(honest_pool)
+        honest_pool = np.array([i for i, _ in enumerate(voting_rights) if mask[i, j] == 0 and 2 * n_extreme <= i < byzantine])
+        if len(honest_pool) > 0:
+            _, honest_pool = zip(*sorted(zip(voting_rights[honest_pool], honest_pool), reverse=True))  # sorting with big weights first
         remaining_honests = len(honest_pool)
         while remaining_honests != 0 and not bol:  # while (SM4) not verified for this alternative
             rand_honest = honest_pool[len(honest_pool) - remaining_honests]
@@ -78,4 +86,6 @@ def regularize_voting_rights(
         cnd_four = (cnd_four and bol)
 
     # print("Condition (iv): {}".format(cnd_four))
+    print('weighted empirical density :', get_density(mask, voting_rights))
+
     return voting_rights, mask

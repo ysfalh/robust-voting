@@ -16,7 +16,7 @@ def disp_boxplot(bv_corr, bv_p, mh_corr, mh_p, labels=None, whis=None):
     plt.show()
 
 
-def range_boxplot(l_lists, l_params, title='', x_name=''):
+def range_boxplot(l_lists, l_params, folder='exp1', title='', x_name=''):
     """ plot several boxplots """
     figure, axis = plt.subplots(1, 1)
     axis.set_title(title)
@@ -25,10 +25,11 @@ def range_boxplot(l_lists, l_params, title='', x_name=''):
     plt.ylabel('Correlation')
     # plt.legend()
     # plt.show()
-    plt.savefig('results/boxplot-{}-{}.png'.format(title, x_name))
+    plt.savefig(f'results/{folder}/boxplot-{title}.png')
+    plt.clf()
 
 
-def draw_curves(l_lists1, l_lists2, l_lists3, l_lists4, l_params, labels=('', '', ''), title='Average correlation', x_name=''):
+def draw_curves(l_lists1, l_lists2, l_lists3, l_lists4, l_params, labels=('', '', ''), folder='exp1', title='Average correlation', x_name=''):
     """ plots average correlation for 2 lists of lists of values """
     # TODO: code can be improved
     size = math.sqrt(len(l_lists1[0]))
@@ -57,4 +58,4 @@ def draw_curves(l_lists1, l_lists2, l_lists3, l_lists4, l_params, labels=('', ''
     plt.ylabel('Correlation')
     plt.legend()
     # plt.show()
-    plt.savefig('results/plot-{}-{}.png'.format(title, x_name))
+    plt.savefig(f'results/{folder}/plot-{title}.png')

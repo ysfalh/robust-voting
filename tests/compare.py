@@ -1,4 +1,9 @@
+import json
+import os
 from scipy.stats import pearsonr
+import shutil
+from time import time
+
 from data_generation.data import generate_data
 from data_generation.voting_rights import generate_voting_rights, regularize_voting_rights
 from votes.mehestan import Mehestan
@@ -28,7 +33,8 @@ def comparative_runs(
         voting_rights = generate_voting_rights(n_voters, p_byzantine, **kwargs)
         voting_rights, mask = regularize_voting_rights(
             original_preferences, voting_rights, mask,
-            voting_resilience=voting_resilience, sm3=sm3, sm4=sm4, **kwargs
+            voting_resilience=voting_resilience, sm3=sm3, sm4=sm4,
+            n_extreme=n_extreme, **kwargs
         )
 
         # voting with MajJudgement
@@ -63,23 +69,24 @@ def comparative_runs(
     return mj_corr, mj_p, bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p
 
 
-def auto_run(dic={}, seed=1, n_proc=1, **kwargs):
+def auto_run(defaults={}, seed=1, name='', params=[]):
     """ multiple runs of both algorithms with 1 parameter changing """
     l_mj_corr, l_mj_p, l_bv_corr, l_bv_p, l_bv_noreg_corr, l_bv_noreg_p, l_mh_corr, l_mh_p = [], [], [], [], [], [], [], []
-    for name, values in kwargs.items():  # only 1 iteration
-        for param in tqdm(values):
-            # print(name, ':', param)
-            dic.pop(name, None)  # remove parameter default value
-            rng = default_rng(seed)
-            mj_corr, mj_p, bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p = comparative_runs(**{name: param}, **dic, rng=rng, n_proc=n_proc)
-            l_mj_corr.append(mj_corr)
-            l_mj_p.append(mj_p)
-            l_bv_corr.append(bv_corr)
-            l_bv_p.append(bv_p)
-            l_bv_noreg_corr.append(bv_noreg_corr)
-            l_bv_noreg_p.append(bv_noreg_p)
-            l_mh_corr.append(mh_corr)
-            l_mh_p.append(mh_p)
+    for param in tqdm(params):
+        print('\n', name, ':', param)
+        defaults.pop(name, None)  # remove parameter default value
+        rng = default_rng(seed)
+        mj_corr, mj_p, bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p = comparative_runs(
+            **{name: param}, **defaults, rng=rng
+        )
+        l_mj_corr.append(mj_corr)
+        l_mj_p.append(mj_p)
+        l_bv_corr.append(bv_corr)
+        l_bv_p.append(bv_p)
+        l_bv_noreg_corr.append(bv_noreg_corr)
+        l_bv_noreg_p.append(bv_noreg_p)
+        l_mh_corr.append(mh_corr)
+        l_mh_p.append(mh_p)
     return l_mj_corr, l_mj_p, l_bv_corr, l_bv_p, l_bv_noreg_corr, l_bv_noreg_p, l_mh_corr, l_mh_p
 
 
@@ -88,14 +95,33 @@ def write_params(params, path='params.json'):
         json.dump(params, f)
 
 
-def run_plot(dic={}, seed=1, n_proc=1, **kwargs):
-    write_params(dic, path='results/params.json')
-    for name, values in kwargs.items():  # only 1 iteration
-        l_mj_corr, l_mj_p, l_bv_corr, l_bv_p, l_bv_noreg_corr, _l_bv_noreg_p, l_mh_corr, l_mh_p = auto_run(seed=seed, dic=dic, n_proc=n_proc, **kwargs)
-        draw_curves(l_mj_corr, l_bv_noreg_corr, l_bv_corr, l_mh_corr, values, labels=('MajJudgement', 'BasicVote', 'BasicVote+QrMed', 'Mehestan'),
-                    x_name=name)
-        range_boxplot(l_mj_corr, values, title='MajJudgement', x_name=name)
-        range_boxplot(l_bv_corr, values, title='BasicVote+QrMed', x_name=name)
-        range_boxplot(l_bv_noreg_corr, values, title='BasicVote', x_name=name)
-        range_boxplot(l_mh_corr, values, title='Mehestan', x_name=name)
-    # print("++DONE++")
+def run_plot(defaults={}, seed=1, folder='exp1', name='', params=[]):
+    write_params(defaults, path=f'results/{folder}/params.json')
+    l_mj_corr, _, l_bv_corr, _, l_bv_noreg_corr, _, l_mh_corr, _ = auto_run(
+        seed=seed, defaults=defaults, name=name, params=params
+    )
+    draw_curves(
+        l_mj_corr, l_bv_noreg_corr, l_bv_corr, l_mh_corr, params, 
+        labels=('MajJudgement', 'BasicVote', 'BasicVote+QrMed', 'Mehestan'),
+        folder=folder, x_name=name
+    )
+    range_boxplot(l_mj_corr, params, folder=folder, title='MajJudgement', x_name=name)
+    range_boxplot(l_bv_corr, params, folder=folder, title='BasicVote+QrMed', x_name=name)
+    range_boxplot(l_bv_noreg_corr, params, folder=folder, title='BasicVote', x_name=name)
+    range_boxplot(l_mh_corr, params, folder=folder, title='Mehestan', x_name=name)
+    print("++DONE++")
+
+
+def multiple_experiments(experiments, defaults={}, seed=1):
+    """ runs several experiments and saves results """
+    shutil.rmtree('results', ignore_errors=True)  # clear results folder
+    os.mkdir('results')
+    i = 0
+    for name, params in experiments.items():
+        t_0 = time()
+        i += 1
+        print('experiment :', i)
+        folder = f'exp{i}'
+        os.mkdir(f'results/{folder}')
+        run_plot(defaults=defaults, seed=seed, folder=folder, name=name, params=params)
+        print('Experiment time :', time() - t_0)
