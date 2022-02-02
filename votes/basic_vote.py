@@ -38,6 +38,10 @@ class BasicVote(Vote):
 
         return out
 
+    def trimmed_mean(self, scores, weights, p_byzantine=0.49):
+        # TODO: implement weighted trimmed mean given p_byzantine < 0.5
+        return
+
     def __compute_global_scores(self, alternatives_list, noreg=False):
         out = []
         voting_resilience = 0. if noreg else self.voting_resilience
