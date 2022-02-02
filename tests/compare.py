@@ -33,7 +33,8 @@ def comparative_runs(
         voting_rights = generate_voting_rights(n_voters, p_byzantine, **kwargs)
         voting_rights, mask = regularize_voting_rights(
             original_preferences, voting_rights, mask,
-            voting_resilience=voting_resilience, sm3=sm3, sm4=sm4, **kwargs
+            voting_resilience=voting_resilience, sm3=sm3, sm4=sm4,
+            n_extreme=n_extreme, **kwargs
         )
 
         # voting with MajJudgement
