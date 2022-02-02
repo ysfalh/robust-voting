@@ -84,7 +84,7 @@ def regularize_voting_rights(
 
         cnd_four = (cnd_four and bol)
 
-    print("Condition (iv): {}".format(cnd_four))
+    # print("Condition (iv): {}".format(cnd_four))
     print('weighted empirical density :', get_density(mask, voting_rights))
 
     return voting_rights, mask
