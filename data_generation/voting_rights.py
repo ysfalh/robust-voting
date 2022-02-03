@@ -33,7 +33,7 @@ def regularize_voting_rights(
     
     sm3, sm4 : between 0 and 1, how much to repect the conditions
     """
-    n_voters, n_alternatives = voting_rights.shape
+    n_voters, n_alternatives = mask.shape
     byzantine = n_voters - 1  # last position (last user)
     n_honest = n_voters - 1
     total_byzantine_rights = voting_rights[byzantine]
