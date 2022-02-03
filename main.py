@@ -7,8 +7,8 @@ SEED = 1
 # TODO: make n_subattempts for each generated original_preferences
 N_PROC = os.cpu_count()
 DEFAULTS = {
-    'n_attempts': 2, 'n_voters': 61, 'n_extreme': 0, 'n_alternatives': 100, 'density': 0.1,
-    'noise': 0.05, 'p_byzantine': 0, 'byz_density': 0, 'byz_strat':'random', 'voting_resilience': 1.,
+    'n_attempts': 2, 'n_voters': 61, 'n_extreme': 0, 'n_alternatives': 100, 'density': 0.1, 'delta': 1e-6,
+    'noise': 0, 'p_byzantine': 0, 'byz_density': 0, 'byz_strat':'random', 'voting_resilience': 1.,
     'transformation_name': "median-quartile", 'pair_perc': 1, 'sm3':1, 'sm4':1
 }
 
@@ -22,9 +22,9 @@ DEFAULTS = {
 # run_plot(n_extreme=[0, 5, 10, 15], seed=SEED, dic=DEFAULTS)
 # run_plot(byz_strat=['random', 'ortho', 'anti'], seed=SEED, dic=DEFAULTS)
 EXPERIMENTS = {
-    'p_byzantine':[0., 0.51],
-    'noise':[0., 0.06],
-    'pair_perc':[0.01, 0.05, 0.1]
+    # 'p_byzantine':[0., 0.51],
+    'delta':[1e-13, 0.01, 0.1, 1],
+    # 'pair_perc':[0.01, 0.05, 0.1]
 
 }
 
