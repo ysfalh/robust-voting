@@ -13,17 +13,17 @@ class BasicVote(Vote):
     }
 
     def __init__(self, ratings, mask, voting_rights, voting_resilience=1,
-                 transformation_name='standardization', n_proc=1):
+                 transformation_name='standardization', n_proc=1, delta=1e-6):
         super().__init__(ratings, mask, voting_rights)
         self.voting_resilience = voting_resilience  # W in the paper
         self.transformation = AffineTransform(name=transformation_name)
         self.n_proc = n_proc
+        self.delta=delta
 
-    def qr_median(self, scores, weights, voting_resilience=None, default_val=0., opt_name="dichotomy"):
+    def qr_median(self, scores, weights, voting_resilience=None, default_val=0., delta = 1e-6, opt_name="dichotomy"):
         if voting_resilience is None:
             voting_resilience = self.voting_resilience
 
-        delta = 1e-6
         bounds = ((min(0, min(scores)), max(0, max(scores))),)
         optimizer = BasicVote.NAME2OPT[opt_name](tolerance=1e-9, max_iter=100)
         derivative = None
@@ -42,7 +42,8 @@ class BasicVote(Vote):
         # TODO: implement weighted trimmed mean given p_byzantine < 0.5
         return
 
-    def __compute_global_scores(self, alternatives_list, noreg=False):
+    def __compute_global_scores(self, alternatives_list, delta=None, noreg=False):
+        delta = 1e-10 if noreg else delta
         out = []
         voting_resilience = 0. if noreg else self.voting_resilience
 
@@ -51,7 +52,7 @@ class BasicVote(Vote):
                                if self.mask[voter][alternative] != 0]).reshape(-1, 1)
             weights = np.array(
                 [x for voter, x in enumerate(self.voting_rights) if self.mask[voter][alternative] != 0]).reshape(-1, 1)
-            out.append(self.qr_median(scores, weights, voting_resilience=voting_resilience))
+            out.append(self.qr_median(scores, weights, delta=delta, voting_resilience=voting_resilience))
 
         return out
 
@@ -61,7 +62,7 @@ class BasicVote(Vote):
                               range(n_proc)]
 
         def f(x):
-            return self.__compute_global_scores(x, noreg=noreg)
+            return self.__compute_global_scores(x, delta=self.delta, noreg=noreg)
 
         out = sum(pool.map(f, alternatives_lists), [])
         out = np.array(out).flatten()
@@ -75,8 +76,8 @@ class BasicVote(Vote):
         for voter in range(self.n_voters):
             self.ratings[voter] = self.transformation.sparse_apply(self.ratings[voter], self.mask[voter, :])
 
-        out = self.multi_compute_global_scores(pool)
-        out_noreg = self.multi_compute_global_scores(pool, noreg=noreg) if noreg else np.zeros(
+        out = self.multi_compute_global_scores(pool, delta=self.delta)
+        out_noreg = self.multi_compute_global_scores(pool, delta=1e-6, noreg=noreg) if noreg else np.zeros(
             self.n_alternatives)
 
         return out, out_noreg
