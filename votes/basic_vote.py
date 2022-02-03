@@ -76,8 +76,8 @@ class BasicVote(Vote):
         for voter in range(self.n_voters):
             self.ratings[voter] = self.transformation.sparse_apply(self.ratings[voter], self.mask[voter, :])
 
-        out = self.multi_compute_global_scores(pool, delta=self.delta)
-        out_noreg = self.multi_compute_global_scores(pool, delta=1e-6, noreg=noreg) if noreg else np.zeros(
+        out = self.multi_compute_global_scores(pool)
+        out_noreg = self.multi_compute_global_scores(pool, noreg=noreg) if noreg else np.zeros(
             self.n_alternatives)
 
         return out, out_noreg
