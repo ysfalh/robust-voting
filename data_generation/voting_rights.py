@@ -33,7 +33,7 @@ def regularize_voting_rights(
     
     sm3, sm4 : between 0 and 1, how much to repect the conditions
     """
-    n_voters = len(voting_rights)
+    n_voters, n_alternatives = mask.shape
     byzantine = n_voters - 1  # last position (last user)
     n_honest = n_voters - 1
     total_byzantine_rights = voting_rights[byzantine]
@@ -42,8 +42,8 @@ def regularize_voting_rights(
     x, y = sorted(original_preferences[:2])  # TODO: Should change depending on pair found by init_mehestan
     tmp_1 = 1 / (y - x)
     tmp_2 = 0
-    for i in range(n_voters):
-        for j in range(n_voters):
+    for i in range(n_alternatives):
+        for j in range(n_alternatives):
             if j > i and original_preferences[j] != original_preferences[i]:
                 tmp_2 = max(tmp_2, abs(tmp_1 - 1 / (abs(original_preferences[j] - original_preferences[i]))))
     tmp = (max(original_preferences) - min(original_preferences)) * max(tmp_1, tmp_2)

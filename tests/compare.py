@@ -112,16 +112,16 @@ def run_plot(defaults={}, seed=1, folder='exp1', name='', params=[]):
     print("++DONE++")
 
 
-def multiple_experiments(experiments, defaults={}, seed=1):
+def multiple_experiments(experiments, seed=1):
     """ runs several experiments and saves results """
     shutil.rmtree('results', ignore_errors=True)  # clear results folder
     os.mkdir('results')
     i = 0
-    for name, params in experiments.items():
+    for exp in experiments:
         t_0 = time()
         i += 1
         print('experiment :', i)
         folder = f'exp{i}'
         os.mkdir(f'results/{folder}')
-        run_plot(defaults=defaults, seed=seed, folder=folder, name=name, params=params)
+        run_plot(defaults=exp[0], seed=seed, folder=folder, **(exp[1]))
         print('Experiment time :', time() - t_0)
