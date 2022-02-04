@@ -18,7 +18,7 @@ import json
 def comparative_runs(
         n_attempts=1, n_voters=30, n_extreme=0, n_alternatives=200,
         density=.01, noise=0, p_byzantine=.45, byz_density=1., byz_strat='random', voting_resilience=1.,
-        transformation_name="min-max", regularize=True, delta=1e-6, pair_perc=1., sm3=0, sm4=0, n_proc=1, **kwargs
+        transformation_name="min-max", delta=1e-6, pair_perc=1., sm3=0, sm4=0, n_proc=1, **kwargs
 ):
     """ comparing the voting algorithms on generated data """
     mj_corr, mj_p, bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p = [], [], [], [], [], [], [], []
