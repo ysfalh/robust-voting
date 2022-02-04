@@ -22,19 +22,23 @@ def comparative_runs(
 ):
     """ comparing the voting algorithms on generated data """
     mj_corr, mj_p, bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p = [], [], [], [], [], [], [], []
-    for i in range(n_attempts):
+
+    seeds = range(n_attempts)
+
+    for seed in seeds:
+        rng = default_rng(seed)
 
         # data generation
         ratings, original_preferences, mask = generate_data(
             n_voters, n_extreme, n_alternatives, noise=noise,
             density=density, byz_density=byz_density, byz_strat=byz_strat,
-            pair_perc=pair_perc, **kwargs
+            pair_perc=pair_perc, rng=rng, **kwargs
         )
-        voting_rights = generate_voting_rights(n_voters, p_byzantine, **kwargs)
+        voting_rights = generate_voting_rights(n_voters, p_byzantine, rng=rng, **kwargs)
         voting_rights, mask = regularize_voting_rights(
             original_preferences, voting_rights, mask,
             voting_resilience=voting_resilience, sm3=sm3, sm4=sm4,
-            n_extreme=n_extreme, **kwargs
+            n_extreme=n_extreme, rng=rng, **kwargs
         )
 
         # voting with MajJudgement
@@ -69,15 +73,14 @@ def comparative_runs(
     return mj_corr, mj_p, bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p
 
 
-def auto_run(defaults={}, seed=1, name='', params=[]):
+def auto_run(defaults={}, name='', params=[]):
     """ multiple runs of both algorithms with 1 parameter changing """
     l_mj_corr, l_mj_p, l_bv_corr, l_bv_p, l_bv_noreg_corr, l_bv_noreg_p, l_mh_corr, l_mh_p = [], [], [], [], [], [], [], []
     for param in tqdm(params):
         print('\n', name, ':', param)
         defaults.pop(name, None)  # remove parameter default value
-        rng = default_rng(seed)
         mj_corr, mj_p, bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p = comparative_runs(
-            **{name: param}, **defaults, rng=rng
+            **{name: param}, **defaults
         )
         l_mj_corr.append(mj_corr)
         l_mj_p.append(mj_p)
@@ -95,10 +98,10 @@ def write_params(params, path='params.json'):
         json.dump(params, f)
 
 
-def run_plot(defaults={}, seed=1, folder='exp1', name='', params=[]):
+def run_plot(defaults={}, folder='exp1', name='', params=[]):
     write_params(defaults, path=f'results/{folder}/params.json')
     l_mj_corr, _, l_bv_corr, _, l_bv_noreg_corr, _, l_mh_corr, _ = auto_run(
-        seed=seed, defaults=defaults, name=name, params=params
+        defaults=defaults, name=name, params=params
     )
     draw_curves(
         l_mj_corr, l_bv_noreg_corr, l_bv_corr, l_mh_corr, params, 
@@ -112,7 +115,7 @@ def run_plot(defaults={}, seed=1, folder='exp1', name='', params=[]):
     print("++DONE++")
 
 
-def multiple_experiments(experiments, seed=1):
+def multiple_experiments(experiments):
     """ runs several experiments and saves results """
     shutil.rmtree('results', ignore_errors=True)  # clear results folder
     os.mkdir('results')
@@ -123,5 +126,5 @@ def multiple_experiments(experiments, seed=1):
         print('experiment :', i)
         folder = f'exp{i}'
         os.mkdir(f'results/{folder}')
-        run_plot(defaults=exp[0], seed=seed, folder=folder, **(exp[1]))
+        run_plot(defaults=exp[0], folder=folder, **(exp[1]))
         print('Experiment time :', time() - t_0)

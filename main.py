@@ -2,7 +2,6 @@ from lib2to3.pgen2.pgen import DFAState
 from tests.compare import multiple_experiments
 import os
 
-SEED = 1
 # TODO: make each attempt with a different seed chosen from a predefined list of seeds
 # TODO: make n_subattempts for each generated original_preferences
 N_PROC = os.cpu_count()
@@ -39,4 +38,4 @@ EXPERIMENTS = [
 ]
 
 if __name__ == '__main__':
-    multiple_experiments(EXPERIMENTS, seed=SEED)
+    multiple_experiments(EXPERIMENTS)
