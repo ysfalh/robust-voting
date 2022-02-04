@@ -20,7 +20,7 @@ def regularize_mask(mask, pair=(0, 1), pair_perc=1., rng=None):
     return mask
 
 
-def gen_style_mask(
+def generate_mask(
         n_unif, n_good, n_bad, n_alternatives,
         n_byz=1, extreme=0.3, density=0.2, byz_density=1, pair_perc=1., rng=None
 ):
@@ -60,7 +60,10 @@ def create_ortho(vect, rng):
     return new_vect
 
 
-def generate_data(n_voters, n_extreme, n_alternatives, density, noise=0, byz_density=1, byz_strat='anti', pair_perc=1., rng=None):
+def generate_data(
+        n_voters, n_extreme, n_alternatives, density, 
+        noise_range=(0, 0), byz_density=1, byz_strat='anti', pair_perc=1., rng=None
+    ):
     """ generates random original preferences, ratings by voters and a mask """
 
     original_preferences = rng.standard_cauchy(n_alternatives)
@@ -70,6 +73,8 @@ def generate_data(n_voters, n_extreme, n_alternatives, density, noise=0, byz_den
     ratings = np.zeros((n_voters, n_alternatives))
 
     byzantine = n_voters - 1  # TODO parametrize nb byzantine
+    noises = rng.uniform(noise_range[0], noise_range[1], n_voters)  # different noise std for each voter
+    noises[byzantine] = 1e-10  # byzantine is supposed to have no uncertainty
     for voter in range(n_voters):
         if voter == byzantine:
             if byz_strat == 'random':
@@ -83,12 +88,12 @@ def generate_data(n_voters, n_extreme, n_alternatives, density, noise=0, byz_den
             scaling = rng.lognormal(1., 1.)
             translation = rng.normal(0., 10.)
             scaling = 1e-1 if scaling == 0 else scaling
-            ratings[voter] = scaling * original_preferences + translation
-            ratings[voter] += np.round(rng.normal(0, noise * scaling, (n_alternatives,)), 2)  # adding noise, TODO create dictionnary with names of transfo
+            ratings[voter] = original_preferences + rng.normal(0, noises[voter], (n_alternatives,))  # Adding noise
+            ratings[voter] = scaling * ratings[voter] + translation
 
-    mask = gen_style_mask(
+    mask = generate_mask(
         n_voters - 2 * n_extreme - 1, n_extreme, n_extreme, n_alternatives, 1,
         density=density, byz_density=byz_density, pair_perc=pair_perc, rng=rng
     )
 
-    return ratings, original_preferences, mask
+    return ratings, original_preferences, mask, noises / np.sqrt(2)

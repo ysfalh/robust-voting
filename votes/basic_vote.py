@@ -13,14 +13,14 @@ class BasicVote(Vote):
     }
 
     def __init__(self, ratings, mask, voting_rights, voting_resilience=1,
-                 transformation_name='standardization', n_proc=1, delta=1e-6):
+                 transformation_name='standardization', n_proc=1, deltas=[]):
         super().__init__(ratings, mask, voting_rights)
         self.voting_resilience = voting_resilience  # W in the paper
         self.transformation = AffineTransform(name=transformation_name)
         self.n_proc = n_proc
-        self.delta=delta
+        self.deltas = deltas
 
-    def qr_median(self, scores, weights, voting_resilience=None, default_val=0., delta = 1e-6, opt_name="dichotomy"):
+    def qr_median(self, scores, weights, voting_resilience=None, default_val=0., deltas=[], opt_name="dichotomy"):
         if voting_resilience is None:
             voting_resilience = self.voting_resilience
 
@@ -28,7 +28,7 @@ class BasicVote(Vote):
         optimizer = BasicVote.NAME2OPT[opt_name](tolerance=1e-9, max_iter=100)
         derivative = None
         if opt_name == "dichotomy":
-            derivative = lambda x: derivate(x, weights, scores, delta, voting_resilience, default_val=default_val)
+            derivative = lambda x: derivate(x, weights, scores, deltas, voting_resilience, default_val=default_val)
         function = None
         if opt_name == "shelf":
             function = lambda x: 0.5 * voting_resilience * (x - default_val) ** 2 + (
@@ -42,8 +42,9 @@ class BasicVote(Vote):
         # TODO: implement weighted trimmed mean given p_byzantine < 0.5
         return
 
-    def __compute_global_scores(self, alternatives_list, delta=None, noreg=False):
-        delta = 1e-10 if noreg else delta
+    def __compute_global_scores(self, alternatives_list, deltas=None, noreg=False):
+        # deltas = 1e-10 if noreg else deltas
+        deltas = self.deltas # FIXME
         out = []
         voting_resilience = 0. if noreg else self.voting_resilience
 
@@ -52,7 +53,7 @@ class BasicVote(Vote):
                                if self.mask[voter][alternative] != 0]).reshape(-1, 1)
             weights = np.array(
                 [x for voter, x in enumerate(self.voting_rights) if self.mask[voter][alternative] != 0]).reshape(-1, 1)
-            out.append(self.qr_median(scores, weights, delta=delta, voting_resilience=voting_resilience))
+            out.append(self.qr_median(scores, weights, deltas=deltas, voting_resilience=voting_resilience))
 
         return out
 
@@ -62,7 +63,7 @@ class BasicVote(Vote):
                               range(n_proc)]
 
         def f(x):
-            return self.__compute_global_scores(x, delta=self.delta, noreg=noreg)
+            return self.__compute_global_scores(x, deltas=self.deltas, noreg=noreg)
 
         out = sum(pool.map(f, alternatives_lists), [])
         out = np.array(out).flatten()

@@ -39,11 +39,11 @@ def multi_find_pair(mask, weights, ratings, pool):
 
 class Mehestan(BasicVote):
     def __init__(self, ratings, mask, voting_rights, voting_resilience=1, transformation_name='standardization',
-                 n_proc=1, delta=1e-6):
+                 n_proc=1, deltas=[]):
         super().__init__(ratings, mask, voting_rights, voting_resilience, transformation_name=transformation_name,
-                         n_proc=n_proc, delta=delta)
+                         n_proc=n_proc, deltas=deltas)
 
-    def __learn_scaling(self, voter, ratings, delta):
+    def __learn_scaling(self, voter, ratings, deltas):
         scores, weights = [], []
         voter_alters = [i for i, x in enumerate(self.mask[voter, :]) if x == 1]
 
@@ -61,13 +61,13 @@ class Mehestan(BasicVote):
             return 1.
 
         out = self.qr_median(
-            np.array(scores), np.array(weights), delta=delta,
+            np.array(scores), np.array(weights), deltas=deltas,
             voting_resilience=self.voting_resilience * max(np.abs(ratings[voter])), default_val=1.
         )
         # print("S_n: {}".format(out * (max(ratings[0]) - min(ratings[0])) / abs(ratings[0, 0]-ratings[0, 1])))
         return out
 
-    def __learn_translation(self, voter, ratings, scalings, delta):
+    def __learn_translation(self, voter, ratings, scalings, deltas):
         scores, weights = [], []
         voter_alters = [i for i, x in enumerate(self.mask[voter, :]) if x == 1]
 
@@ -84,15 +84,15 @@ class Mehestan(BasicVote):
         if len(scores) == 0:
             return 0.
 
-        out = self.qr_median(np.array(scores), np.array(weights), delta=delta)
+        out = self.qr_median(np.array(scores), np.array(weights), deltas=deltas)
         # S = scalings[voter] * (max(ratings[0]) - min(ratings[0])) / abs(ratings[0, 0]-ratings[0, 1])
         return out
 
     def __compute_scalings(self, voter_list):
-        return [self.__learn_scaling(voter, self.ratings, self.delta) for voter in voter_list]
+        return [self.__learn_scaling(voter, self.ratings, self.deltas) for voter in voter_list]
 
     def __compute_translations(self, voter_list, scalings):
-        return [self.__learn_translation(voter, self.ratings, scalings, self.delta) for voter in voter_list]
+        return [self.__learn_translation(voter, self.ratings, scalings, self.deltas) for voter in voter_list]
 
     def __compute_factors(self, pool):
         n_proc = pool._processes
