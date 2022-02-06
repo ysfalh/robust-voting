@@ -123,12 +123,10 @@ def multiple_experiments(experiments):
     """ runs several experiments and saves results """
     shutil.rmtree('results', ignore_errors=True)  # clear results folder
     os.mkdir('results')
-    i = 0
-    for exp in experiments:
+    for i, (default, params) in enumerate(experiments):
         t_0 = time()
-        i += 1
         print('experiment :', i)
-        folder = f'exp{i}'
-        os.mkdir(f'results/{folder}')
-        run_plot(defaults=exp[0], folder=folder, **(exp[1]))
+        folder = ("{}-".format(i))+params['name']
+        os.mkdir('results/{}'.format(folder))
+        run_plot(defaults=default, folder=folder, **params)
         print('Experiment time :', time() - t_0)
