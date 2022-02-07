@@ -1,7 +1,7 @@
-import random
-
 import numpy as np
+import pandas as pd
 
+from data_generation.voting_rights import generate_voting_rights, regularize_voting_rights
 
 def regularize_mask(mask, pair=(0, 1), pair_perc=1., rng=None):
     """ add a pair of commonly voted alternatives """
@@ -62,7 +62,7 @@ def create_ortho(vect, rng):
 
 def generate_data(
         n_voters, n_extreme, n_alternatives, density, 
-        noise_range=(0, 0), byz_density=1, byz_strat='anti', pair_perc=1., rng=None
+        noise_range=(0, 0), byz_density=1, byz_strat='anti', pair_perc=1., rng=None, **kwargs
     ):
     """ generates random original preferences, ratings by voters and a mask """
 
@@ -97,3 +97,52 @@ def generate_data(
     )
 
     return ratings, original_preferences, mask, noises / np.sqrt(2)
+
+
+def sparsify_mask(input_mask, density, n_extreme=0, extreme_perc=0.3, rng=None):
+    """ sparsify input mask """
+    n_voters, n_alternatives = input_mask.shape
+    # sparsification
+    sparsity = rng.binomial(1, density, (input_mask.shape))
+    new_mask = sparsity & input_mask
+    # zeroing out all nonextreme elternatives of extreme voters
+    extremity_nb = int(extreme_perc * n_alternatives)
+    extreme_idxs = np.random.randint(0, n_voters - 1, 2 * n_extreme)
+    high_idxs, low_idxs = extreme_idxs[:n_extreme], extreme_idxs[n_extreme:]
+    new_mask[high_idxs, :extremity_nb] = 0
+    new_mask[low_idxs, extremity_nb:] = 0
+
+    return new_mask
+
+
+def generate_all_data(
+        n_voters, n_extreme, n_alternatives, noise_range, 
+        density, byz_density, byz_strat, pair_perc, sm3, sm4, delta, p_byzantine, voting_resilience,
+        seed, **kwargs):
+    """ generates random original preferences, ratings, mask, voting_rights """
+    rng = np.random.default_rng(seed)
+    np.random.seed(seed)
+
+    ratings, original_preferences, mask, deltas = generate_data(
+        n_voters, n_extreme, n_alternatives, noise_range=noise_range,
+        density=density, byz_density=byz_density, byz_strat=byz_strat,
+        pair_perc=pair_perc, rng=rng, **kwargs
+    )
+    if delta is not None:  # if delta not custom for each user
+        deltas = [delta] * n_voters
+    voting_rights = generate_voting_rights(n_voters, p_byzantine, rng=rng, **kwargs)
+    voting_rights, mask = regularize_voting_rights(
+        original_preferences, voting_rights, mask,
+        voting_resilience=voting_resilience, sm3=sm3, sm4=sm4,
+        n_extreme=n_extreme, rng=rng, **kwargs
+    )
+    return ratings, mask, voting_rights, original_preferences, deltas
+
+def read_movielens(path='data/u.data'):
+    data =  pd.read_csv(path, sep="\t")
+    ratings = np.zeros((len(data.uid.unique()), len(data.vid.unique())))
+    for uid, vid, rating in zip(data.uid, data.vid, data.rating):
+        ratings[uid - 1][vid - 1] = rating
+    mask = (ratings != 0) * 1
+    voting_rights = np.ones(len(mask))
+    return ratings, mask, voting_rights

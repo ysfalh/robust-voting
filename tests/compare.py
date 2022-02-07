@@ -3,16 +3,16 @@ import os
 from scipy.stats import pearsonr
 import shutil
 from time import time
+import numpy as np
+from tqdm import tqdm
 
-from data_generation.data import generate_data
-from data_generation.voting_rights import generate_voting_rights, regularize_voting_rights
+from data_generation.data import generate_all_data, sparsify_mask
 from votes.mehestan import Mehestan
 from votes.basic_vote import BasicVote
 from votes.maj_judgement import MajJudement
 from plots.boxplot import draw_curves, range_boxplot
 from numpy.random import default_rng
-from tqdm import tqdm
-import json
+
 
 
 def comparative_runs(
@@ -26,22 +26,13 @@ def comparative_runs(
     seeds = range(n_attempts)
 
     for seed in seeds:
-        rng = default_rng(seed)
+        
+        ratings, mask, voting_rights, original_preferences, deltas = generate_all_data(
+            n_voters, n_extreme, n_alternatives, noise_range, 
+            density, byz_density, byz_strat, pair_perc, sm3, sm4, delta, p_byzantine, voting_resilience,
+            seed, **kwargs
+        )
 
-        # data generation
-        ratings, original_preferences, mask, deltas = generate_data(
-            n_voters, n_extreme, n_alternatives, noise_range=noise_range,
-            density=density, byz_density=byz_density, byz_strat=byz_strat,
-            pair_perc=pair_perc, rng=rng, **kwargs
-        )
-        if delta is not None:  # if delta not custom for each user
-            deltas = [delta] * n_voters
-        voting_rights = generate_voting_rights(n_voters, p_byzantine, rng=rng, **kwargs)
-        voting_rights, mask = regularize_voting_rights(
-            original_preferences, voting_rights, mask,
-            voting_resilience=voting_resilience, sm3=sm3, sm4=sm4,
-            n_extreme=n_extreme, rng=rng, **kwargs
-        )
         # voting with MajJudgement
         mj = MajJudement(ratings, mask, voting_rights)
         out = mj.run()
@@ -77,14 +68,93 @@ def comparative_runs(
     return mj_corr, mj_p, bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p
 
 
-def auto_run(defaults={}, name='', params=[]):
+def comparative_runs_sparsified(
+        ratings=None, mask=None, voting_rights=None, 
+        density=0.8, n_extreme=0,
+        n_attempts=1,  delta=1e-10, voting_resilience=1., transformation_name="min-max", n_proc=1, **kwargs
+    ):
+    """ comparing the voting algorithms using existing data and its sparsified version """
+    mj_corr, mj_p, bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p = [], [], [], [], [], [], [], []
+
+    # Computing -------- "ground truths" -----------------
+
+    # voting with MajJudgement
+    mj = MajJudement(ratings, mask, voting_rights)
+    gt_mj = mj.run()
+
+    # voting with BasicVote
+    bv = BasicVote(
+        ratings, mask, voting_rights,
+        voting_resilience, transformation_name=transformation_name, n_proc=n_proc, deltas=delta
+    )
+    gt_bv, gt_noreg = bv.run()
+
+    # voting with Mehestan
+    mh = Mehestan(
+        ratings, mask, voting_rights, voting_resilience, 
+        transformation_name=transformation_name, n_proc=n_proc, deltas=delta
+    )
+    gt_mh = mh.run()
+
+    # --------- comparing to sparsified versions ----------------
+    seeds = range(n_attempts)
+    origin_mask = mask
+
+    mj_corr, mj_p, bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p = [], [], [], [], [], [], [], []
+
+    for seed in seeds:
+        rng = default_rng(seed)
+        np.random.seed(seed)
+        mask = sparsify_mask(origin_mask, density, n_extreme=n_extreme, rng=rng)
+
+           # voting with MajJudgement
+        mj = MajJudement(ratings, mask, voting_rights)
+        out = mj.run()
+        corr, pval = pearsonr(out, gt_mj)
+        mj_corr.append(corr)
+        mj_p.append(pval)
+
+        # voting with BasicVote
+        bv = BasicVote(
+            ratings, mask, voting_rights,
+            voting_resilience, transformation_name=transformation_name, n_proc=n_proc, deltas=delta
+        )
+        out, out_noreg = bv.run()
+        corr, pval = pearsonr(out, gt_bv)
+        bv_corr.append(corr)
+        bv_p.append(pval)
+
+        # without regularisation
+        corr, pval = pearsonr(out_noreg, gt_noreg)
+        bv_noreg_corr.append(corr)
+        bv_noreg_p.append(pval)
+
+        # voting with Mehestan
+        mh = Mehestan(
+            ratings, mask, voting_rights, voting_resilience, 
+            transformation_name=transformation_name, n_proc=n_proc, deltas=delta
+        )
+        out = mh.run()
+        corr, pval = pearsonr(out, gt_mh)
+        mh_corr.append(corr)
+        mh_p.append(pval)
+
+    return mj_corr, mj_p, bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p
+
+
+def auto_run(defaults={}, name='', params=[], data=None):
     """ multiple runs of both algorithms with 1 parameter changing """
     l_mj_corr, l_mj_p, l_bv_corr, l_bv_p, l_bv_noreg_corr, l_bv_noreg_p, l_mh_corr, l_mh_p = [], [], [], [], [], [], [], []
     for param in tqdm(params):
         print('\n', name, ':', param)
         defaults.pop(name, None)  # remove parameter default value
-        mj_corr, mj_p, bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p = comparative_runs(
+        if data is None:  # if we use generated data
+            mj_corr, mj_p, bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p = comparative_runs(
             **{name: param}, **defaults
+        )
+        else :
+            mj_corr, mj_p, bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p = comparative_runs_sparsified(
+            **{name: param}, **defaults, **data
         )
         l_mj_corr.append(mj_corr)
         l_mj_p.append(mj_p)
@@ -102,10 +172,10 @@ def write_params(params, path='params.json'):
         json.dump(params, f)
 
 
-def run_plot(defaults={}, folder='exp1', name='', params=[]):
+def run_plot(defaults={}, folder='exp1', name='', params=[], data=None):
     write_params(defaults, path=f'results/{folder}/params.json')
     l_mj_corr, _, l_bv_corr, _, l_bv_noreg_corr, _, l_mh_corr, _ = auto_run(
-        defaults=defaults, name=name, params=params
+        defaults=defaults, name=name, params=params, data=data
     )
     draw_curves(
         l_mj_corr, l_bv_noreg_corr, l_bv_corr, l_mh_corr, params, 
@@ -119,7 +189,7 @@ def run_plot(defaults={}, folder='exp1', name='', params=[]):
     print("++DONE++")
 
 
-def multiple_experiments(experiments):
+def multiple_experiments(experiments, data=None):
     """ runs several experiments and saves results """
     shutil.rmtree('results', ignore_errors=True)  # clear results folder
     os.mkdir('results')
@@ -130,5 +200,5 @@ def multiple_experiments(experiments):
         print('experiment :', i)
         folder = f'exp{i}'
         os.mkdir(f'results/{folder}')
-        run_plot(defaults=exp[0], folder=folder, **(exp[1]))
+        run_plot(defaults=exp[0], folder=folder, **(exp[1]), data=data)
         print('Experiment time :', time() - t_0)
