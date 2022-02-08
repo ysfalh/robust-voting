@@ -196,8 +196,10 @@ def multiple_experiments(experiments, data=None):
     """ runs several experiments and saves results """
     shutil.rmtree('results', ignore_errors=True)  # clear results folder
     os.mkdir('results')
-    for i, (default, params) in enumerate(experiments):
+    i = 0
+    for exp in experiments:
         t_0 = time()
+        i += 1
         print('experiment :', i)
         folder = f'exp{i}'
         os.mkdir(f'results/{folder}')
