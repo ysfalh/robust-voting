@@ -28,10 +28,14 @@ class AffineTransform(Transform):
         self.slope, self.offset = AffineTransform.NAME2TUPLE[name]
 
     def apply(self, param):
+        if min(param) == max(param):
+            return np.zeros(len(param))
         out = self.slope(param) * param + self.offset(param)
         return out
 
     def sparse_apply(self, param, mask):
+        if min(param[mask==1]) == max(param[mask==1]):
+            return np.zeros(len(param))
         slope = self.slope([x for i, x in enumerate(param) if mask[i] != 0])
         offset = self.offset([x for i, x in enumerate(param) if mask[i] != 0])
         out = slope * param + offset

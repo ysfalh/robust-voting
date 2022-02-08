@@ -3,7 +3,7 @@
 import numpy as np
 
 
-def generate_voting_rights(n_voters, p_byzantine, rng=None):
+def generate_voting_rights(n_voters, p_byzantine, rng=None, **kwargs):
     """ generate random voting rights 
     
     p_byzantine : importance of the byzantine voter
@@ -27,7 +27,7 @@ def get_density(mask, voting_rights):
 def regularize_voting_rights(
         original_preferences, voting_rights, mask, 
         voting_resilience=1, sm3=0, sm4=0, n_extreme=0,
-        rng=None
+        **kwargs
     ):
     """ change voting rights to be closer to (SM3) and (SM4) 
     

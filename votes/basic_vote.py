@@ -82,35 +82,3 @@ class BasicVote(Vote):
             self.n_alternatives)
 
         return out, out_noreg
-
-# def qr_median(scores, weights, voting_resilience=None, default_val=0., opt_name="dichotomy"):
-#     delta = 1e-6
-#     bounds = ((min(0, min(scores)), max(0, max(scores))),)
-#     optimizer = BasicVote.NAME2OPT[opt_name](tolerance=1e-9, max_iter=100)
-#     function = None
-#     derivative = None
-#     if opt_name == "dichotomy":
-#         derivative = lambda x: derivate(x, weights, scores, delta, voting_resilience, default_val=default_val)
-#     if opt_name == "shelf":
-#         function = lambda x: 0.5 * voting_resilience * (x - default_val) ** 2 + (
-#                 weights.T @ np.abs(x - scores)).sum()
-#     # if opt_name == "dichotomy", the argument 'function' passed to minimize is useless
-#     out = optimizer.minimize(function=function, derivative=derivative, bounds=bounds)
-#
-#     return out
-
-
-# scores = np.array([0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00,
-#                    0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00,
-#                    0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 1.01863407e-10,
-#                    -5.35047716e+00, -3.08402684e+00, -7.37334860e+00, -4.48877521e+01,
-#                    2.05494900e+00, -2.28660619e+00, -6.99886337e+00, -8.32755864e+00])
-# weights = np.array([0.42111545, 0.42111545, 0.42111545, 0.42111545, 0.42111545, 0.42111545,
-#                     0.42111545, 0.42111545, 0.42111545, 0.42111545, 0.18047805, 0.18047805,
-#                     0.18047805, 0.18047805, 0.18047805, 0.18047805, 0.18047805, 0.18047805,
-#                     0.18047805, 0.18047805])
-#
-# out_1 = qr_median(scores, weights, voting_resilience=1., default_val=0., opt_name="dichotomy")
-# out_2 = qr_median(scores, weights, voting_resilience=1., default_val=0., opt_name="shelf")
-# print("Dichotomy output: {}".format(out_1))
-# print("Shelf output: {}".format(out_2))
