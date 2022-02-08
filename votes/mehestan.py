@@ -109,8 +109,8 @@ class Mehestan(BasicVote):
         a, b = multi_find_pair(self.mask, self.voting_rights, self.ratings, pool)
         # print("Pair chosen by Mehestan: {}".format((a, b)))
         for voter in range(self.n_voters):
-            if self.mask[voter][a] and self.mask[voter][b]:
-                x, y = sorted(self.ratings[voter, [a, b]])
+            x, y = sorted(self.ratings[voter, [a, b]])
+            if self.mask[voter][a] and self.mask[voter][b] and x != y:
                 self.ratings[voter] = (self.ratings[voter] - x) / (y - x)
             else:  # if pair not rated by voter
                 # print('using alternative scaling')

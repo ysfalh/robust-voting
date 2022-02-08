@@ -26,9 +26,9 @@ def comparative_runs(
     seeds = range(n_attempts)
 
     for seed in seeds:
-        
+
         ratings, mask, voting_rights, original_preferences, deltas = generate_all_data(
-            n_voters, n_extreme, n_alternatives, noise_range, 
+            n_voters, n_extreme, n_alternatives, noise_range,
             density, byz_density, byz_strat, pair_perc, sm3, sm4, delta, p_byzantine, voting_resilience,
             seed, **kwargs
         )
@@ -42,7 +42,7 @@ def comparative_runs(
 
         # voting with BasicVote
         bv = BasicVote(
-            ratings, mask, voting_rights,
+            np.copy(ratings), mask, voting_rights,
             voting_resilience, transformation_name=transformation_name, n_proc=n_proc, deltas=deltas
         )
         out, out_noreg = bv.run()
@@ -57,7 +57,7 @@ def comparative_runs(
 
         # voting with Mehestan
         mh = Mehestan(
-            ratings, mask, voting_rights, voting_resilience, 
+            np.copy(ratings), mask, voting_rights, voting_resilience,
             transformation_name=transformation_name, n_proc=n_proc, deltas=deltas
         )
         out = mh.run()
@@ -69,7 +69,7 @@ def comparative_runs(
 
 
 def comparative_runs_sparsified(
-        ratings=None, mask=None, voting_rights=None, 
+        ratings=None, mask=None, voting_rights=None,
         density=0.8, n_extreme=0,
         n_attempts=1,  delta=1e-10, voting_resilience=1., transformation_name="min-max", n_proc=1, **kwargs
     ):
@@ -78,37 +78,40 @@ def comparative_runs_sparsified(
 
     # Computing -------- "ground truths" -----------------
 
+    origin_mask = mask
+
     # voting with MajJudgement
-    mj = MajJudement(ratings, mask, voting_rights)
+    mj = MajJudement(ratings, origin_mask, voting_rights)
     gt_mj = mj.run()
 
     # voting with BasicVote
     bv = BasicVote(
-        ratings, mask, voting_rights,
+        np.copy(ratings), origin_mask, voting_rights,
         voting_resilience, transformation_name=transformation_name, n_proc=n_proc, deltas=delta
     )
+
     gt_bv, gt_noreg = bv.run()
 
     # voting with Mehestan
     mh = Mehestan(
-        ratings, mask, voting_rights, voting_resilience, 
+        np.copy(ratings), origin_mask, voting_rights, voting_resilience,
         transformation_name=transformation_name, n_proc=n_proc, deltas=delta
     )
     gt_mh = mh.run()
 
     # --------- comparing to sparsified versions ----------------
     seeds = range(n_attempts)
-    origin_mask = mask
 
     mj_corr, mj_p, bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p = [], [], [], [], [], [], [], []
 
     for seed in seeds:
+
         rng = default_rng(seed)
         np.random.seed(seed)
         mask = sparsify_mask(origin_mask, density, n_extreme=n_extreme, rng=rng)
 
            # voting with MajJudgement
-        mj = MajJudement(ratings, mask, voting_rights)
+        mj = MajJudement(np.copy(ratings), mask, voting_rights)
         out = mj.run()
         corr, pval = pearsonr(out, gt_mj)
         mj_corr.append(corr)
@@ -116,7 +119,7 @@ def comparative_runs_sparsified(
 
         # voting with BasicVote
         bv = BasicVote(
-            ratings, mask, voting_rights,
+            np.copy(ratings), mask, voting_rights,
             voting_resilience, transformation_name=transformation_name, n_proc=n_proc, deltas=delta
         )
         out, out_noreg = bv.run()
@@ -131,7 +134,7 @@ def comparative_runs_sparsified(
 
         # voting with Mehestan
         mh = Mehestan(
-            ratings, mask, voting_rights, voting_resilience, 
+            np.copy(ratings), mask, voting_rights, voting_resilience,
             transformation_name=transformation_name, n_proc=n_proc, deltas=delta
         )
         out = mh.run()
@@ -178,7 +181,7 @@ def run_plot(defaults={}, folder='exp1', name='', params=[], data=None):
         defaults=defaults, name=name, params=params, data=data
     )
     draw_curves(
-        l_mj_corr, l_bv_noreg_corr, l_bv_corr, l_mh_corr, params, 
+        l_mj_corr, l_bv_noreg_corr, l_bv_corr, l_mh_corr, params,
         labels=('MajJudgement', 'BasicVote', 'BasicVote+QrMed', 'Mehestan'),
         folder=folder, x_name=name
     )

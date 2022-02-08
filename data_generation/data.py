@@ -6,7 +6,7 @@ from data_generation.voting_rights import generate_voting_rights, regularize_vot
 def regularize_mask(mask, pair=(0, 1), pair_perc=1., rng=None):
     """ add a pair of commonly voted alternatives """
     n_voters, n_alternatives = mask.shape
-    mask[:, pair[0]] = mask[:, pair[1]] = rng.binomial(1, pair_perc, (n_voters,))
+    mask[:, pair[0]] = mask[:, pair[1]] = rng.binomial(1, pair_perc, (n_voters,))  # FIXME can remove ones
     for j in range(n_alternatives):
         if np.all(mask[:, j] == 0):
             a = rng.integers(0, n_voters)
@@ -44,7 +44,6 @@ def generate_mask(
     alts = list(range(n_alternatives))
     rng.shuffle(alts)
     meh_pair = alts[:2]
-    # print("Pair chosen at generation: {}".format(meh_pair))
 
     return regularize_mask(mask, pair=meh_pair, pair_perc=pair_perc, rng=rng)
 
@@ -146,3 +145,9 @@ def read_movielens(path='data/u.data'):
     mask = (ratings != 0) * 1
     voting_rights = np.ones(len(mask))
     return ratings, mask, voting_rights
+
+
+def add_fake_byzantin(ratings, mask, voting_rights):
+    ratings = np.append(ratings, np.zeros((1, len(ratings[0]))), axis=0)
+    mask = np.append(mask, np.ones((1, len(ratings[0]))), axis=0)
+    voting_rights = np.append(voting_rights, [0])
