@@ -20,21 +20,30 @@ class AffineTransform(Transform):
         "l2-proj": (lambda x: 1 / norm(x - np.mean(x), p=2), lambda x: -np.mean(x) / norm(x - np.mean(x), p=2)),
         "adversarial-0.5": (lambda x: 1 / np.sqrt(np.abs(x - np.mean(x)).sum()),
                             lambda x: -np.mean(x) / np.sqrt(np.abs(x - np.mean(x)).sum())),
+        "inv-adversarial-0.5": (lambda x: 1 / np.sqrt(np.abs(x - np.mean(x)).sum()),
+                                lambda x: -np.mean(x) / np.sqrt(np.abs(x - np.mean(x)).sum())),
         "adversarial-0.8": (lambda x: 1 / np.abs(x - np.mean(x)).sum() ** 0.8,
                             lambda x: -np.mean(x) / np.abs(x - np.mean(x)).sum() ** 0.8)
     }
 
     def __init__(self, name="identity"):
         self.slope, self.offset = AffineTransform.NAME2TUPLE[name]
+        self.name = name
 
     def apply(self, param):
-        if min(param) == max(param):
+        boo = min(param) == max(param) or\
+              (self.name == "median-quartile" and np.quantile(param, .75) == np.quantile(param, .25))
+        if boo:
             return np.zeros(len(param))
         out = self.slope(param) * param + self.offset(param)
         return out
 
     def sparse_apply(self, param, mask):
-        if min(param[mask==1]) == max(param[mask==1]):
+        if len(param[mask == 1]) == 0:
+            return param
+        boo = min(param[mask == 1]) == max(param[mask == 1]) or \
+              (self.name == "median-quartile" and np.quantile(param[mask == 1], .75) == np.quantile(param[mask == 1], .25))
+        if boo:
             return np.zeros(len(param))
         slope = self.slope([x for i, x in enumerate(param) if mask[i] != 0])
         offset = self.offset([x for i, x in enumerate(param) if mask[i] != 0])
