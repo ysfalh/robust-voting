@@ -42,18 +42,16 @@ class Dichotomy(Optimizer):
             else:
                 inf = mid
             mid = (inf + sup) / 2
-
         return mid
 
 
 def derivate(x, weights, values, deltas=[], voting_resilience=1, default_val=0.):
-    # TODO: move to basic_vote
     """ computes the derivative of QrMed """
     if not hasattr(deltas, '__len__'):  # if delta not custom for each user
         deltas = [deltas] * len(weights)
     deriv = voting_resilience * (x - default_val)
     for value, weight, delta in zip(values, weights, deltas):
-        deriv += weight * sign(x - value) * (1 - math.exp(-abs(x - value) / delta))
+        deriv += weight * sign(x - value) * (1 - math.exp(-abs(x - value) / delta)) if delta != 0 else weight * sign(x - value)
     return deriv
 
 
