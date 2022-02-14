@@ -25,13 +25,14 @@ def get_density(mask, voting_rights):
 
 
 def regularize_voting_rights(
-        original_preferences, voting_rights, mask, 
+        original_preferences, voting_rights, mask,
         voting_resilience=1, sm3=0, sm4=0, n_extreme=0,
         **kwargs
-    ):
+):
+    #                       DEPRECATED
     """ change voting rights to be closer to (SM3) and (SM4) 
     
-    sm3, sm4 : between 0 and 1, how much to repect the conditions
+    sm3, sm4 : between 0 and 1, how much to respect the conditions
     """
     n_voters, n_alternatives = mask.shape
     byzantine = n_voters - 1  # last position (last user)
@@ -39,7 +40,7 @@ def regularize_voting_rights(
     total_byzantine_rights = voting_rights[byzantine]
     total_voting_rights = sum(voting_rights)
     total_honest_rights = total_voting_rights - total_byzantine_rights
-    x, y = sorted(original_preferences[:2])  # TODO: Should change depending on pair found by init_mehestan
+    x, y = sorted(original_preferences[:2])
     tmp_1 = 1 / (y - x)
     tmp_2 = 0
     for i in range(n_alternatives):
@@ -53,8 +54,8 @@ def regularize_voting_rights(
 
     # ---------- SM3 ----------------------
     alpha = sm3 * w_zero / (total_honest_rights - 0.5 * total_voting_rights)
-    if alpha > 0:   # FIXME superior as 0 or 1 ??
-        voting_rights = np.array(voting_rights) * alpha  # to ensure condition (iii)  # FIXME why not only on the (a,b) pair ?
+    if alpha > 0:
+        voting_rights = np.array(voting_rights) * alpha  # to ensure condition (iii)
     total_byzantine_rights = voting_rights[byzantine]
     total_voting_rights = sum(voting_rights)
     total_honest_rights = total_voting_rights - total_byzantine_rights
@@ -69,9 +70,11 @@ def regularize_voting_rights(
         local_byzantine_rights = sum(
             [x for i, x in enumerate(voting_rights) if mask[i, j] != 0 and i == byzantine])
         bol = (local_honest_rights >= local_byzantine_rights + w_zero * sm4)
-        honest_pool = np.array([i for i, _ in enumerate(voting_rights) if mask[i, j] == 0 and 2 * n_extreme <= i < byzantine])
+        honest_pool = np.array(
+            [i for i, _ in enumerate(voting_rights) if mask[i, j] == 0 and 2 * n_extreme <= i < byzantine])
         if len(honest_pool) > 0:
-            _, honest_pool = zip(*sorted(zip(voting_rights[honest_pool], honest_pool), reverse=True))  # sorting with big weights first
+            _, honest_pool = zip(
+                *sorted(zip(voting_rights[honest_pool], honest_pool), reverse=True))  # sorting with big weights first
         remaining_honests = len(honest_pool)
         while remaining_honests != 0 and not bol:  # while (SM4) not verified for this alternative
             rand_honest = honest_pool[len(honest_pool) - remaining_honests]
