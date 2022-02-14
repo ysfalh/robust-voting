@@ -4,36 +4,11 @@ from votes.basic_vote import BasicVote
 import multiprocess as mp
 
 
-def find_pair(mask, weights, ratings, alt_list=None):
-    """ find the most rated pair of alternatives in the mask """
-
-    def _count_ratings(mask, i, j, weights, ratings):
-        """ counts nb of voters voting for both i and j """
-        return sum((mask[:, i] & mask[:, j] & ((ratings[:, i] - ratings[:, j]) != 0)) * weights)
-
-    best_weight, best_i, best_j = 0, 0, 0
-    n_alternatives = mask.shape[1]
-    if alt_list is None:
-        alt_list = range(n_alternatives-1)
-
-    for i in alt_list:
-        for j in range(i + 1, n_alternatives):
-            new_weight = _count_ratings(mask, i, j, weights, ratings)
-            if new_weight > best_weight:
-                best_weight, best_i, best_j = new_weight, i, j
-    return best_i, best_j, best_weight
-
-
-def multi_find_pair(mask, weights, ratings, pool):
-    n_proc = pool._processes
-    n_alternatives = mask.shape[1]
-    alternatives_lists = [range(p * n_alternatives // n_proc, (p + 1) * n_alternatives // n_proc) for p in
-                          range(n_proc)]
-
-    def f(alt_list):
-        return find_pair(mask, weights, ratings, alt_list=alt_list)
-
-    out = max(pool.map(f, alternatives_lists), key=lambda item: item[2])[:2]
+def cl_mean(scores, weights, center, radius):
+    clip_scores = np.clip(scores, center - radius, center + radius)
+    if sum(weights) == 0:
+        return center
+    out = (weights.T @ clip_scores) / sum(weights)
     return out
 
 
@@ -42,6 +17,16 @@ class Mehestan(BasicVote):
                  n_proc=1, deltas=[]):
         super().__init__(ratings, mask, voting_rights, voting_resilience, transformation_name=transformation_name,
                          n_proc=n_proc, deltas=deltas)
+
+    def br_mean(self, scores, weights, voting_resilience=None, deltas=[], opt_name="dichotomy"):
+        if voting_resilience is None:
+            voting_resilience = self.voting_resilience
+
+        center = self.qr_median(scores, weights, voting_resilience=4 * voting_resilience, deltas=deltas,
+                                opt_name=opt_name)
+        radius = sum(weights) / (4 * voting_resilience) if voting_resilience != 0 else 1e9
+        out = cl_mean(scores, weights, center, radius)
+        return out
 
     def __learn_scaling(self, voter, ratings, deltas):
         scores, weights = [], []
@@ -52,19 +37,24 @@ class Mehestan(BasicVote):
             alter_inter = [i for i in voterbis_alters if i in voter_alters]
             if len(alter_inter) < 2:
                 continue
-            a, b = alter_inter[:2]
-            r = abs((ratings[voterbis, b] - ratings[voterbis, a]) / (ratings[voter, b] - ratings[voter, a]))
-            scores.append(r)
+            r, s = 0, 0
+            for i in range(len(alter_inter) - 1):
+                a = alter_inter[i]
+                for j in range(i + 1, len(alter_inter)):
+                    b = alter_inter[j]
+                    if (ratings[voter, b] != ratings[voter, a]) and (ratings[voterbis, b] != ratings[voterbis, a]):
+                        s += 1
+                        r += abs((ratings[voterbis, b] - ratings[voterbis, a]) / (ratings[voter, b] - ratings[voter, a]))
+
+            r = r / s if s != 0 else 0
+            scores.append(r - 1)
             weights.append(self.voting_rights[voterbis])
 
         if len(scores) == 0:
             return 1.
 
-        out = self.qr_median(
-            np.array(scores), np.array(weights), deltas=deltas,
-            voting_resilience=self.voting_resilience * max(np.abs(ratings[voter])), default_val=1.
-        )
-        # print("S_n: {}".format(out * (max(ratings[0]) - min(ratings[0])) / abs(ratings[0, 0]-ratings[0, 1])))
+        out = 1 + self.br_mean(np.array(scores), np.array(weights), deltas=deltas,
+                               voting_resilience=self.voting_resilience * max(np.abs(ratings[voter])))
         return out
 
     def __learn_translation(self, voter, ratings, scalings, deltas):
@@ -76,16 +66,17 @@ class Mehestan(BasicVote):
             alter_inter = [i for i in voterbis_alters if i in voter_alters]
             if len(alter_inter) < 1:
                 continue
+            r = 0
             for a in alter_inter:
-                r = scalings[voterbis] * ratings[voterbis, a] - scalings[voter] * ratings[voter, a]
-                scores.append(r)
-                weights.append(self.voting_rights[voterbis] / len(alter_inter))
+                r += scalings[voterbis] * ratings[voterbis, a] - scalings[voter] * ratings[voter, a]
+            r = r / len(alter_inter)
+            scores.append(r)
+            weights.append(self.voting_rights[voterbis])
 
         if len(scores) == 0:
             return 0.
 
-        out = self.qr_median(np.array(scores), np.array(weights), deltas=deltas)
-        # S = scalings[voter] * (max(ratings[0]) - min(ratings[0])) / abs(ratings[0, 0]-ratings[0, 1])
+        out = self.br_mean(np.array(scores), np.array(weights), deltas=deltas)
         return out
 
     def __compute_scalings(self, voter_list):
@@ -103,24 +94,15 @@ class Mehestan(BasicVote):
 
         return scalings, translations
 
-    def __init_mehestan(self, pool):
-        """ rescaling using most rated pair of alternatives """
-        # a, b, _ = find_pair(self.mask, self.voting_rights, self.ratings)
-        a, b = multi_find_pair(self.mask, self.voting_rights, self.ratings, pool)
-        # print("Pair chosen by Mehestan: {}".format((a, b)))
+    def __init_mehestan(self):
+        """ pre-normalization """
         for voter in range(self.n_voters):
-            x, y = sorted(self.ratings[voter, [a, b]])
-            if self.mask[voter][a] and self.mask[voter][b] and x != y:
-                self.ratings[voter] = (self.ratings[voter] - x) / (y - x)
-            else:  # if pair not rated by voter
-                # print('using alternative scaling')
-                self.ratings[voter] = self.transformation.sparse_apply(self.ratings[voter], self.mask[voter, :])
+            self.ratings[voter] = self.transformation.sparse_apply(self.ratings[voter], self.mask[voter, :])
 
     def run(self):
         """ run voting algorithm """
         pool = mp.Pool(self.n_proc)
-        # mehestan normalisation
-        self.__init_mehestan(pool)
+        self.__init_mehestan()
 
         scalings, translations = self.__compute_factors(pool)
 
