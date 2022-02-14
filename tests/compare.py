@@ -2,7 +2,6 @@ import json
 import os
 from scipy.stats import pearsonr
 import shutil
-from time import time
 import numpy as np
 from tqdm import tqdm
 
@@ -17,8 +16,8 @@ from numpy.random import default_rng
 
 def comparative_runs(
         n_attempts=1, n_voters=30, n_extreme=0, n_alternatives=200,
-        density=.01, noise_range=(0,0), p_byzantine=.45, byz_density=1., byz_strat='random', voting_resilience=1.,
-        transformation_name="min-max", delta=None, pair_perc=1., sm3=0, sm4=0, n_proc=1, **kwargs
+        density=.01, noise_range=(0, 0), p_byzantine=.45, byz_density=1., byz_strat='random', voting_resilience=1.,
+        transformation_name="min-max", delta=None, sm=0, n_proc=1, **kwargs
 ):
     """ comparing the voting algorithms on generated data """
     mj_corr, mj_p, bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p = [], [], [], [], [], [], [], []
@@ -29,7 +28,7 @@ def comparative_runs(
 
         ratings, mask, voting_rights, original_preferences, deltas = generate_all_data(
             n_voters, n_extreme, n_alternatives, noise_range,
-            density, byz_density, byz_strat, pair_perc, sm3, sm4, delta, p_byzantine, voting_resilience,
+            density, byz_density, byz_strat, sm, delta, p_byzantine,
             seed, **kwargs
         )
 
@@ -149,7 +148,7 @@ def auto_run(defaults={}, name='', params=[], data=None):
     """ multiple runs of both algorithms with 1 parameter changing """
     l_mj_corr, l_mj_p, l_bv_corr, l_bv_p, l_bv_noreg_corr, l_bv_noreg_p, l_mh_corr, l_mh_p = [], [], [], [], [], [], [], []
     for param in tqdm(params):
-        print('\n', name, ':', param)
+        # print('\n', name, ':', param)
         defaults.pop(name, None)  # remove parameter default value
         if data is None:  # if we use generated data
             mj_corr, mj_p, bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p = comparative_runs(
@@ -182,12 +181,12 @@ def run_plot(defaults={}, folder='exp1', name='', params=[], data=None):
     )
     draw_curves(
         l_mj_corr, l_bv_noreg_corr, l_bv_corr, l_mh_corr, params,
-        labels=('MajJudgement', 'BasicVote', 'BasicVote+QrMed', 'Mehestan'),
+        labels=('Med', 'NormMed', 'NormQrMed', 'Mehestan'),
         folder=folder, x_name=name
     )
-    range_boxplot(l_mj_corr, params, folder=folder, title='MajJudgement', x_name=name)
-    range_boxplot(l_bv_corr, params, folder=folder, title='BasicVote+QrMed', x_name=name)
-    range_boxplot(l_bv_noreg_corr, params, folder=folder, title='BasicVote', x_name=name)
+    range_boxplot(l_mj_corr, params, folder=folder, title='Med', x_name=name)
+    range_boxplot(l_bv_corr, params, folder=folder, title='NormQrMed', x_name=name)
+    range_boxplot(l_bv_noreg_corr, params, folder=folder, title='NormMed', x_name=name)
     range_boxplot(l_mh_corr, params, folder=folder, title='Mehestan', x_name=name)
     print("++DONE++")
 
@@ -197,11 +196,8 @@ def multiple_experiments(experiments, data=None):
     shutil.rmtree('results', ignore_errors=True)  # clear results folder
     os.mkdir('results')
     i = 0
-    for exp in experiments:
-        t_0 = time()
+    for default, exp in experiments:
         i += 1
-        print('experiment :', i)
-        folder = f'exp{i}'
+        folder = f'{i}-'+exp['name']
         os.mkdir(f'results/{folder}')
-        run_plot(defaults=exp[0], folder=folder, **(exp[1]), data=data)
-        print('Experiment time :', time() - t_0)
+        run_plot(defaults=default, folder=folder, **exp, data=data)
