@@ -1,12 +1,12 @@
 import numpy as np
+import itertools
 import pandas as pd
 
-from data_generation.voting_rights import generate_voting_rights, regularize_voting_rights
+from data_generation.voting_rights import generate_voting_rights
 
-def regularize_mask(mask, pair=(0, 1), pair_perc=1., rng=None):
-    """ add a pair of commonly voted alternatives """
+
+def regularize_mask(mask, rng=None):
     n_voters, n_alternatives = mask.shape
-    mask[:, pair[0]] = mask[:, pair[1]] = rng.binomial(1, pair_perc, (n_voters,))  # FIXME can remove ones
     for j in range(n_alternatives):
         if np.all(mask[:, j] == 0):
             a = rng.integers(0, n_voters)
@@ -20,9 +20,52 @@ def regularize_mask(mask, pair=(0, 1), pair_perc=1., rng=None):
     return mask
 
 
+def regularize_mask_comparability(mask, ratings, sm=1., rng=None):
+    n_voters, n_alternatives = mask.shape
+    voter_list = list(range(n_voters-1))
+    rng.shuffle(voter_list)
+    for i_voter in range(len(voter_list)-1):
+        voter = voter_list[i_voter]
+        if np.all(ratings[voter] - ratings[voter].mean() == 0):   # list is constant, we can't do anything
+            continue
+        voter_alters = [i for i, x in enumerate(mask[voter, :]) if x == 1]
+        for i_voterbis in range(i_voter+1, len(voter_list)):
+            voterbis = voter_list[i_voterbis]
+            if np.all(ratings[voterbis] - ratings[voterbis].mean() == 0):  # list is constant, we can't do anything
+                continue
+            voterbis_alters = [i for i, x in enumerate(mask[voterbis, :]) if x == 1]
+            alter_inter = [i for i in voterbis_alters if i in voter_alters]
+            comparable = False
+            if len(alter_inter) >= 2:
+                pairs = list(itertools.combinations(alter_inter, 2))
+                i = 0
+                while not comparable:
+                    a, b = pairs[i]
+                    comparable = (ratings[voter, b] != ratings[voter, a]) and (ratings[voterbis, b] != ratings[voterbis, a])
+                    i += 1
+
+            if not comparable:
+                flip_coin = rng.binomial(1, sm, 1)
+                if flip_coin != 1:
+                    break
+                shuff_voter_alters = voter_alters
+                rng.shuffle(shuff_voter_alters)
+                shuff_alter = list(range(n_alternatives))
+                rng.shuffle(shuff_alter)
+
+                a = shuff_voter_alters[0]
+                mask[voterbis, a] = 1
+                for b in shuff_alter:
+                    if (ratings[voter, b] != ratings[voter, a]) and (ratings[voterbis, b] != ratings[voterbis, a]):
+                        mask[voter, b] = mask[voterbis, b] = 1
+                        break
+
+    return mask
+
+
 def generate_mask(
         n_unif, n_good, n_bad, n_alternatives,
-        n_byz=1, extreme=0.3, density=0.2, byz_density=1, pair_perc=1., rng=None
+        n_byz=1, extreme=0.3, density=0.2, byz_density=1, rng=None
 ):
     """ generates a mask with 3 notation styles for honest voters:
         - uniform votes
@@ -41,11 +84,8 @@ def generate_mask(
     # byzantine
     mask[n_voters - n_byz:, :] = rng.binomial(1, byz_density, (n_byz, n_alternatives))
 
-    alts = list(range(n_alternatives))
-    rng.shuffle(alts)
-    meh_pair = alts[:2]
+    return regularize_mask(mask, rng=rng)
 
-    return regularize_mask(mask, pair=meh_pair, pair_perc=pair_perc, rng=rng)
 
 def create_ortho(vect, rng):
     """ returns a vector orthogonal to vect 
@@ -60,9 +100,9 @@ def create_ortho(vect, rng):
 
 
 def generate_data(
-        n_voters, n_extreme, n_alternatives, density, 
-        noise_range=(0, 0), byz_density=1, byz_strat='anti', pair_perc=1., rng=None, **kwargs
-    ):
+        n_voters, n_extreme, n_alternatives, density,
+        noise_range=(0, 0), byz_density=1, byz_strat='anti', rng=None, **kwargs
+):
     """ generates random original preferences, ratings by voters and a mask """
 
     original_preferences = rng.standard_cauchy(n_alternatives)
@@ -71,7 +111,7 @@ def generate_data(
     original_preferences = np.sort(original_preferences)
     ratings = np.zeros((n_voters, n_alternatives))
 
-    byzantine = n_voters - 1  # TODO parametrize nb byzantine
+    byzantine = n_voters - 1
     noises = rng.uniform(noise_range[0], noise_range[1], n_voters)  # different noise std for each voter
     noises[byzantine] = 1e-10  # byzantine is supposed to have no uncertainty
     for voter in range(n_voters):
@@ -92,7 +132,7 @@ def generate_data(
 
     mask = generate_mask(
         n_voters - 2 * n_extreme - 1, n_extreme, n_extreme, n_alternatives, 1,
-        density=density, byz_density=byz_density, pair_perc=pair_perc, rng=rng
+        density=density, byz_density=byz_density, rng=rng
     )
 
     return ratings, original_preferences, mask, noises / np.sqrt(2)
@@ -115,8 +155,8 @@ def sparsify_mask(input_mask, density, n_extreme=0, extreme_perc=0.3, rng=None):
 
 
 def generate_all_data(
-        n_voters, n_extreme, n_alternatives, noise_range, 
-        density, byz_density, byz_strat, pair_perc, sm3, sm4, delta, p_byzantine, voting_resilience,
+        n_voters, n_extreme, n_alternatives, noise_range,
+        density, byz_density, byz_strat, sm, delta, p_byzantine,
         seed, **kwargs):
     """ generates random original preferences, ratings, mask, voting_rights """
     rng = np.random.default_rng(seed)
@@ -124,21 +164,22 @@ def generate_all_data(
 
     ratings, original_preferences, mask, deltas = generate_data(
         n_voters, n_extreme, n_alternatives, noise_range=noise_range,
-        density=density, byz_density=byz_density, byz_strat=byz_strat,
-        pair_perc=pair_perc, rng=rng, **kwargs
+        density=density, byz_density=byz_density, byz_strat=byz_strat, rng=rng, **kwargs
     )
     if delta is not None:  # if delta not custom for each user
         deltas = [delta] * n_voters
     voting_rights = generate_voting_rights(n_voters, p_byzantine, rng=rng, **kwargs)
-    voting_rights, mask = regularize_voting_rights(
-        original_preferences, voting_rights, mask,
-        voting_resilience=voting_resilience, sm3=sm3, sm4=sm4,
-        n_extreme=n_extreme, rng=rng, **kwargs
-    )
+    # voting_rights, mask = regularize_voting_rights(
+    #     original_preferences, voting_rights, mask,
+    #     voting_resilience=voting_resilience, sm3=sm3, sm4=sm4,
+    #     n_extreme=n_extreme, rng=rng, **kwargs
+    # )
+    mask = regularize_mask_comparability(mask, ratings, sm=sm, rng=rng)
     return ratings, mask, voting_rights, original_preferences, deltas
 
+
 def read_movielens(path='data/u.data'):
-    data =  pd.read_csv(path, sep="\t")
+    data = pd.read_csv(path, sep="\t")
     ratings = np.zeros((len(data.uid.unique()), len(data.vid.unique())))
     for uid, vid, rating in zip(data.uid, data.vid, data.rating):
         ratings[uid - 1][vid - 1] = rating
@@ -147,7 +188,7 @@ def read_movielens(path='data/u.data'):
     return ratings, mask, voting_rights
 
 
-def add_fake_byzantin(ratings, mask, voting_rights):
-    ratings = np.append(ratings, np.zeros((1, len(ratings[0]))), axis=0)
-    mask = np.append(mask, np.ones((1, len(ratings[0]))), axis=0)
-    voting_rights = np.append(voting_rights, [0])
+# def add_fake_byzantin(ratings, mask, voting_rights):
+#     ratings = np.append(ratings, np.zeros((1, len(ratings[0]))), axis=0)
+#     mask = np.append(mask, np.ones((1, len(ratings[0]))), axis=0)
+#     voting_rights = np.append(voting_rights, [0])
