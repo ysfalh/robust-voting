@@ -23,8 +23,9 @@ class BasicVote(Vote):
     def qr_median(self, scores, weights, voting_resilience=None, default_val=0., deltas=[], opt_name="dichotomy"):
         if voting_resilience is None:
             voting_resilience = self.voting_resilience
-
-        bounds = ((min(0, min(scores)), max(0, max(scores))),)
+        if len(scores) == 0:
+            return default_val
+        bounds = ((min(0, scores.min()), max(0, scores.max())),)
         optimizer = BasicVote.NAME2OPT[opt_name](tolerance=1e-9, max_iter=100)
         derivative = None
         if opt_name == "dichotomy":
@@ -38,13 +39,9 @@ class BasicVote(Vote):
 
         return out
 
-    def trimmed_mean(self, scores, weights, p_byzantine=0.49):
-        # TODO: implement weighted trimmed mean given p_byzantine < 0.5
-        return
-
     def __compute_global_scores(self, alternatives_list, deltas=None, noreg=False):
         # deltas = 1e-10 if noreg else deltas
-        deltas = self.deltas # FIXME
+        deltas = self.deltas
         out = []
         voting_resilience = 0. if noreg else self.voting_resilience
 
@@ -66,7 +63,7 @@ class BasicVote(Vote):
             return self.__compute_global_scores(x, deltas=self.deltas, noreg=noreg)
 
         out = sum(pool.map(f, alternatives_lists), [])
-        out = np.array(out).flatten()
+        out = np.array(out, dtype=object)
 
         return out
 
