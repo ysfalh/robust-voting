@@ -1,4 +1,4 @@
-# Robust Sparse Voting
+# Byzantine Sparse Voting
 
 Use the following command line to run the experiments:
 
