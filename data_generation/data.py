@@ -107,7 +107,6 @@ def generate_data(
 
     original_preferences = rng.normal(size=n_alternatives)
     # original_preferences = rng.standard_cauchy(n_alternatives)
-    print(original_preferences.shape)
     original_preferences = (original_preferences - original_preferences.min()) / (
             original_preferences.max() - original_preferences.min())
     original_preferences = np.sort(original_preferences)
