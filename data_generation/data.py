@@ -105,7 +105,8 @@ def generate_data(
 ):
     """ generates random original preferences, ratings by voters and a mask """
 
-    original_preferences = rng.standard_cauchy(n_alternatives)
+    original_preferences = rng.normal(n_alternatives)
+    # original_preferences = rng.standard_cauchy(n_alternatives)
     original_preferences = (original_preferences - original_preferences.min()) / (
             original_preferences.max() - original_preferences.min())
     original_preferences = np.sort(original_preferences)
