@@ -20,7 +20,7 @@ def comparative_runs(
         transformation_name="min-max", delta=None, sm=0, n_proc=1, **kwargs
 ):
     """ comparing the voting algorithms on generated data """
-    mj_corr, mj_p, bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p = [], [], [], [], [], [], [], []
+    mj_corr, mj_p, bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p, mh_noreg_corr, mh_noreg_p = [], [], [], [], [], [], [], [], [], []
 
     seeds = range(n_attempts)
 
@@ -33,11 +33,14 @@ def comparative_runs(
         )
 
         # voting with MajJudgement
-        mj = MajJudement(ratings, mask, voting_rights)
+        mj = MajJudement(
+            np.copy(ratings), mask, voting_rights
+        )
         out = mj.run()
         corr, pval = pearsonr(out, original_preferences)
         mj_corr.append(corr)
         mj_p.append(pval)
+
 
         # voting with BasicVote
         bv = BasicVote(
@@ -45,6 +48,8 @@ def comparative_runs(
             voting_resilience, transformation_name=transformation_name, n_proc=n_proc, deltas=deltas
         )
         out, out_noreg = bv.run()
+
+        # with regularization
         corr, pval = pearsonr(out, original_preferences)
         bv_corr.append(corr)
         bv_p.append(pval)
@@ -55,6 +60,7 @@ def comparative_runs(
         bv_noreg_p.append(pval)
 
         # voting with Mehestan
+        # with regularization
         mh = Mehestan(
             np.copy(ratings), mask, voting_rights, voting_resilience,
             transformation_name=transformation_name, n_proc=n_proc, deltas=deltas
@@ -63,110 +69,122 @@ def comparative_runs(
         corr, pval = pearsonr(out, original_preferences)
         mh_corr.append(corr)
         mh_p.append(pval)
+        # print("mh", out[0], corr, pval)
 
-    return mj_corr, mj_p, bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p
-
-
-def comparative_runs_sparsified(
-        ratings=None, mask=None, voting_rights=None,
-        density=0.8, n_extreme=0,
-        n_attempts=1,  delta=1e-10, voting_resilience=1., transformation_name="min-max", n_proc=1, **kwargs
-    ):
-    """ comparing the voting algorithms using existing data and its sparsified version """
-    mj_corr, mj_p, bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p = [], [], [], [], [], [], [], []
-
-    # Computing -------- "ground truths" -----------------
-
-    origin_mask = mask
-
-    # voting with MajJudgement
-    mj = MajJudement(ratings, origin_mask, voting_rights)
-    gt_mj = mj.run()
-
-    # voting with BasicVote
-    bv = BasicVote(
-        np.copy(ratings), origin_mask, voting_rights,
-        voting_resilience, transformation_name=transformation_name, n_proc=n_proc, deltas=delta
-    )
-
-    gt_bv, gt_noreg = bv.run()
-
-    # voting with Mehestan
-    mh = Mehestan(
-        np.copy(ratings), origin_mask, voting_rights, voting_resilience,
-        transformation_name=transformation_name, n_proc=n_proc, deltas=delta
-    )
-    gt_mh = mh.run()
-
-    # --------- comparing to sparsified versions ----------------
-    seeds = range(n_attempts)
-
-    mj_corr, mj_p, bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p = [], [], [], [], [], [], [], []
-
-    for seed in seeds:
-
-        rng = default_rng(seed)
-        np.random.seed(seed)
-        mask = sparsify_mask(origin_mask, density, n_extreme=n_extreme, rng=rng)
-
-           # voting with MajJudgement
-        mj = MajJudement(np.copy(ratings), mask, voting_rights)
-        out = mj.run()
-        corr, pval = pearsonr(out, gt_mj)
-        mj_corr.append(corr)
-        mj_p.append(pval)
-
-        # voting with BasicVote
-        bv = BasicVote(
-            np.copy(ratings), mask, voting_rights,
-            voting_resilience, transformation_name=transformation_name, n_proc=n_proc, deltas=delta
+        # without regularization
+        mh_noreg = Mehestan(
+            np.copy(ratings), mask, voting_rights, 0,
+            transformation_name=transformation_name, n_proc=n_proc, deltas=deltas
         )
-        out, out_noreg = bv.run()
-        corr, pval = pearsonr(out, gt_bv)
-        bv_corr.append(corr)
-        bv_p.append(pval)
+        out = mh_noreg.run()
+        corr, pval = pearsonr(out, original_preferences)
+        mh_noreg_corr.append(corr)
+        mh_noreg_p.append(pval)
+        # print("mhnoreg", out[0], corr, pval)
 
-        # without regularisation
-        corr, pval = pearsonr(out_noreg, gt_noreg)
-        bv_noreg_corr.append(corr)
-        bv_noreg_p.append(pval)
+    return mj_corr, mj_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p, mh_noreg_corr, mh_noreg_p
 
-        # voting with Mehestan
-        mh = Mehestan(
-            np.copy(ratings), mask, voting_rights, voting_resilience,
-            transformation_name=transformation_name, n_proc=n_proc, deltas=delta
-        )
-        out = mh.run()
-        corr, pval = pearsonr(out, gt_mh)
-        mh_corr.append(corr)
-        mh_p.append(pval)
 
-    return mj_corr, mj_p, bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p
+# def comparative_runs_sparsified(
+#         ratings=None, mask=None, voting_rights=None,
+#         density=0.8, n_extreme=0,
+#         n_attempts=1,  delta=1e-10, voting_resilience=1., transformation_name="min-max", n_proc=1, **kwargs
+#     ):
+#     """ comparing the voting algorithms using existing data and its sparsified version """
+#     mj_corr, mj_p, bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p = [], [], [], [], [], [], [], []
+
+#     # Computing -------- "ground truths" -----------------
+
+#     origin_mask = mask
+
+#     # voting with MajJudgement
+#     mj = MajJudement(ratings, origin_mask, voting_rights)
+#     gt_mj = mj.run()
+
+#     # voting with BasicVote
+#     bv = BasicVote(
+#         np.copy(ratings), origin_mask, voting_rights,
+#         voting_resilience, transformation_name=transformation_name, n_proc=n_proc, deltas=delta
+#     )
+
+#     gt_bv, gt_noreg = bv.run()
+
+#     # voting with Mehestan
+#     mh = Mehestan(
+#         np.copy(ratings), origin_mask, voting_rights, voting_resilience,
+#         transformation_name=transformation_name, n_proc=n_proc, deltas=delta
+#     )
+#     gt_mh = mh.run()
+
+#     # --------- comparing to sparsified versions ----------------
+#     seeds = range(n_attempts)
+
+#     mj_corr, mj_p, bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p = [], [], [], [], [], [], [], []
+
+#     for seed in seeds:
+
+#         rng = default_rng(seed)
+#         np.random.seed(seed)
+#         mask = sparsify_mask(origin_mask, density, n_extreme=n_extreme, rng=rng)
+
+#            # voting with MajJudgement
+#         mj = MajJudement(np.copy(ratings), mask, voting_rights)
+#         out = mj.run()
+#         corr, pval = pearsonr(out, gt_mj)
+#         mj_corr.append(corr)
+#         mj_p.append(pval)
+
+#         # voting with BasicVote
+#         bv = BasicVote(
+#             np.copy(ratings), mask, voting_rights,
+#             voting_resilience, transformation_name=transformation_name, n_proc=n_proc, deltas=delta
+#         )
+#         out, out_noreg = bv.run()
+#         corr, pval = pearsonr(out, gt_bv)
+#         bv_corr.append(corr)
+#         bv_p.append(pval)
+
+#         # without regularisation
+#         corr, pval = pearsonr(out_noreg, gt_noreg)
+#         bv_noreg_corr.append(corr)
+#         bv_noreg_p.append(pval)
+
+#         # voting with Mehestan
+#         mh = Mehestan(
+#             np.copy(ratings), mask, voting_rights, voting_resilience,
+#             transformation_name=transformation_name, n_proc=n_proc, deltas=delta
+#         )
+#         out = mh.run()
+#         corr, pval = pearsonr(out, gt_mh)
+#         mh_corr.append(corr)
+#         mh_p.append(pval)
+
+#     return mj_corr, mj_p, bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p
 
 
 def auto_run(defaults={}, name='', params=[], data=None):
-    """ multiple runs of both algorithms with 1 parameter changing """
-    l_mj_corr, l_mj_p, l_bv_corr, l_bv_p, l_bv_noreg_corr, l_bv_noreg_p, l_mh_corr, l_mh_p = [], [], [], [], [], [], [], []
+    """ multiple runs of all algorithms with 1 parameter changing """
+    l_mj_corr, l_mj_p, l_bv_noreg_corr, l_bv_noreg_p, l_mh_corr, l_mh_p, l_mh_noreg_corr, l_mh_noreg_p = [], [], [], [], [], [], [], []
     for param in tqdm(params):
-        # print('\n', name, ':', param)
         defaults.pop(name, None)  # remove parameter default value
-        if data is None:  # if we use generated data
-            mj_corr, mj_p, bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p = comparative_runs(
+        if data is None:
+            mj_corr, mj_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p, mh_noreg_corr, mh_noreg_p = comparative_runs(
             **{name: param}, **defaults
         )
         else :
-            mj_corr, mj_p, bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p = comparative_runs_sparsified(
-            **{name: param}, **defaults, **data
-        )
+            pass  # DEPRECATED
+            # mj_corr, mj_p, bv_corr, bv_p, bv_noreg_corr, bv_noreg_p, mh_corr, mh_p = comparative_runs_sparsified(
+            # **{name: param}, **defaults, **data
+        # )
         l_mj_corr.append(mj_corr)
         l_mj_p.append(mj_p)
-        l_bv_corr.append(bv_corr)
-        l_bv_p.append(bv_p)
         l_bv_noreg_corr.append(bv_noreg_corr)
         l_bv_noreg_p.append(bv_noreg_p)
         l_mh_corr.append(mh_corr)
         l_mh_p.append(mh_p)
-    return l_mj_corr, l_mj_p, l_bv_corr, l_bv_p, l_bv_noreg_corr, l_bv_noreg_p, l_mh_corr, l_mh_p
+        l_mh_noreg_corr.append(mh_noreg_corr)
+        l_mh_noreg_p.append(mh_noreg_p)
+    return l_mj_corr, l_mj_p, l_bv_noreg_corr, l_bv_noreg_p, l_mh_corr, l_mh_p, l_mh_noreg_corr, l_mh_noreg_p
 
 
 def write_params(params, path='params.json'):
@@ -176,16 +194,16 @@ def write_params(params, path='params.json'):
 
 def run_plot(defaults={}, folder='exp1', name='', params=[], data=None):
     write_params(defaults, path=f'results/{folder}/params.json')
-    l_mj_corr, _, l_bv_corr, _, l_bv_noreg_corr, _, l_mh_corr, _ = auto_run(
+    l_mj_corr, _, l_bv_noreg_corr, _, l_mh_corr, _, l_mh_noreg_corr, _,  = auto_run(
         defaults=defaults, name=name, params=params, data=data
     )
     draw_curves(
-        l_mj_corr, l_bv_noreg_corr, l_bv_corr, l_mh_corr, params,
-        labels=('Med', 'NormMed', 'NormQrMed', 'Mehestan'),
+        l_mj_corr, l_bv_noreg_corr, l_mh_corr, l_mh_noreg_corr, params,
+        labels=('Med', 'NormMed', 'Mehestan','Mehestan W=0'),
         folder=folder, x_name=name
     )
     range_boxplot(l_mj_corr, params, folder=folder, title='Med', x_name=name)
-    range_boxplot(l_bv_corr, params, folder=folder, title='NormQrMed', x_name=name)
+    range_boxplot(l_mh_noreg_corr, params, folder=folder, title='Mehestan W=0', x_name=name)
     range_boxplot(l_bv_noreg_corr, params, folder=folder, title='NormMed', x_name=name)
     range_boxplot(l_mh_corr, params, folder=folder, title='Mehestan', x_name=name)
     print("++DONE++")
