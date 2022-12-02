@@ -28,6 +28,7 @@ class BasicVote(Vote):
         bounds = ((min(0, scores.min()), max(0, scores.max())),)
         optimizer = BasicVote.NAME2OPT[opt_name](tolerance=1e-9, max_iter=100)
         derivative = None
+        deltas = np.zeros(len(weights)) + 1e-9
         if opt_name == "dichotomy":
             derivative = lambda x: derivate(x, weights, scores, deltas, voting_resilience, default_val=default_val)
         function = None
