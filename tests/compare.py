@@ -1,5 +1,6 @@
 import json
 import os
+import copy
 from scipy.stats import pearsonr
 import shutil
 import numpy as np
@@ -199,13 +200,13 @@ def run_plot(defaults={}, folder='exp1', name='', params=[], data=None):
     )
     draw_curves(
         l_mj_corr, l_bv_noreg_corr, l_mh_corr, l_mh_noreg_corr, params,
-        labels=('Med', 'NormMed', 'Mehestan','Mehestan W=0'),
+        labels=('Med', 'NormMed', f'Mehestan W={defaults["voting_resilience"]}','Mehestan W=0'),
         folder=folder, x_name=name
     )
     range_boxplot(l_mj_corr, params, folder=folder, title='Med', x_name=name)
     range_boxplot(l_mh_noreg_corr, params, folder=folder, title='Mehestan W=0', x_name=name)
     range_boxplot(l_bv_noreg_corr, params, folder=folder, title='NormMed', x_name=name)
-    range_boxplot(l_mh_corr, params, folder=folder, title='Mehestan', x_name=name)
+    range_boxplot(l_mh_corr, params, folder=folder, title=f'Mehestan W={defaults["voting_resilience"]}', x_name=name)
     print("++DONE++")
 
 
@@ -218,4 +219,4 @@ def multiple_experiments(experiments, data=None):
         i += 1
         folder = f'{i}-'+exp['name']
         os.mkdir(f'results/{folder}')
-        run_plot(defaults=default, folder=folder, **exp, data=data)
+        run_plot(defaults=copy.deepcopy(default), folder=folder, **exp, data=data)
