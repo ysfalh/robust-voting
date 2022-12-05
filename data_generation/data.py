@@ -105,6 +105,10 @@ def generate_data(
         noise_range=(0, 0), byz_density=1, byz_strat='anti', rng=None, **kwargs
 ):
     """ generates random original preferences, ratings by voters and a mask """
+    mask = generate_mask(
+        n_voters - n_extreme - 1, n_extreme//2, n_extreme//2, n_alternatives, 1,
+        density=density, byz_density=byz_density, rng=rng
+    )
 
     original_preferences = rng.normal(size=n_alternatives)
     # original_preferences = rng.standard_cauchy(n_alternatives)
@@ -124,6 +128,20 @@ def generate_data(
                 ratings[voter] = - original_preferences
             elif byz_strat == 'ortho':
                 ratings[voter] = create_ortho(original_preferences, rng=rng)
+            elif byz_strat == 'focus':
+                count = np.sum(mask[:-1], axis=0)
+                for i, (true_pref, nb) in enumerate(zip(original_preferences, count)):
+                    if nb < density * (n_voters - 1):
+                        ratings[voter][i] = - np.sign(true_pref)
+                    else:
+                        ratings[voter][i] = 0
+            elif byz_strat == 'focus_anti':
+                count = np.sum(mask[:-1], axis=0)
+                for i, (true_pref, nb) in enumerate(zip(original_preferences, count)):
+                    if nb < density * (n_voters - 1):
+                        ratings[voter][i] = - true_pref
+                    else:
+                        ratings[voter][i] = 0
 
         else:
             scaling = rng.lognormal(1., 1.)
@@ -131,11 +149,6 @@ def generate_data(
             scaling = 1e-1 if scaling == 0 else scaling
             ratings[voter] = original_preferences + rng.normal(0, noises[voter], (n_alternatives,))  # Adding noise
             ratings[voter] = scaling * ratings[voter] + translation
-
-    mask = generate_mask(
-        n_voters - n_extreme - 1, n_extreme//2, n_extreme//2, n_alternatives, 1,
-        density=density, byz_density=byz_density, rng=rng
-    )
 
     return ratings, original_preferences, mask, noises / np.sqrt(2)
 
