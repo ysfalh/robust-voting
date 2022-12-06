@@ -107,7 +107,7 @@ def generate_data(
     """ generates random original preferences, ratings by voters and a mask """
     mask = generate_mask(
         n_voters - n_extreme - 1, n_extreme//2, n_extreme//2, n_alternatives, 1,
-        density=density, byz_density=byz_density, rng=rng
+        density=density, byz_density=byz_density, rng=rng, **kwargs
     )
 
     original_preferences = rng.normal(size=n_alternatives)
