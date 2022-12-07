@@ -36,13 +36,13 @@ def draw_curves(l_lists1, l_lists2, l_lists3, l_lists4, l_params, labels=('', ''
     range3 = np.array([1.96 * np.std(vals) / size for vals in l_lists3], dtype=object)
     range4 = np.array([1.96 * np.std(vals) / size for vals in l_lists4], dtype=object)
 
-    plt.plot(l_params, vals1, label=labels[0])
+    plt.plot(l_params, vals1, label=labels[0], linestyle='dashdot', color='orange')
     plt.fill_between(list(l_params), list(vals1 - range1), list(vals1 + range1), alpha=0.1)
-    plt.plot(l_params, vals2, label=labels[1])
+    plt.plot(l_params, vals2, label=labels[1], linestyle='dotted', color='red')
     plt.fill_between(list(l_params), list(vals2 - range2), list(vals2 + range2), alpha=0.1)
-    plt.plot(l_params, vals3, label=labels[2])
+    plt.plot(l_params, vals3, label=labels[2], linestyle='solid', color='green')
     plt.fill_between(list(l_params), list(vals3 - range3), list(vals3 + range3), alpha=0.1)
-    plt.plot(l_params, vals4, label=labels[3])
+    plt.plot(l_params, vals4, label=labels[3], linestyle='dashed', color='blue')
     plt.fill_between(list(l_params), list(vals4 - range4), list(vals4 + range4), alpha=0.1)
 
     plt.title(title)
