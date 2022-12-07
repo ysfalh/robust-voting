@@ -102,18 +102,21 @@ def create_ortho(vect, rng):
 
 def generate_data(
         n_voters, n_extreme, n_alternatives, density,
-        noise_range=(0, 0), byz_density=1, byz_strat='anti', rng=None, **kwargs
+        noise_range=(0, 0), byz_density=1, byz_strat='anti', rng=None, distribution="normal", **kwargs
 ):
     """ generates random original preferences, ratings by voters and a mask """
     mask = generate_mask(
         n_voters - n_extreme - 1, n_extreme//2, n_extreme//2, n_alternatives, 1,
         density=density, byz_density=byz_density, rng=rng, **kwargs
     )
-
-    original_preferences = rng.normal(size=n_alternatives)
-    # original_preferences = rng.standard_cauchy(n_alternatives)
+    if distribution == "normal":
+        original_preferences = rng.normal(size=n_alternatives)
+    elif distribution == "cauchy":
+        original_preferences = rng.standard_cauchy(n_alternatives)
+    elif distribution == "uniform":
+        original_preferences = rng.uniform(-1, 1, size=n_alternatives)
     original_preferences = (original_preferences - original_preferences.min()) / (
-            original_preferences.max() - original_preferences.min())
+                            original_preferences.max() - original_preferences.min())
     original_preferences = np.sort(original_preferences)
     ratings = np.zeros((n_voters, n_alternatives))
 
