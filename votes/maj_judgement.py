@@ -13,12 +13,14 @@ class MajJudement(BasicVote):
         super().__init__(ratings, mask, voting_rights, voting_resilience, transformation_name=transformation_name,
                          n_proc=n_proc, deltas=deltas)
 
-    def qr_median(self, scores, weights, voting_resilience=0, default_val=0., deltas=[], opt_name="dichotomy"):
+    def qr_median(self, scores, weights, voting_resilience=None, default_val=0., deltas=[], opt_name="dichotomy"):
+        voting_resilience = 0
         if len(scores) == 0:
             return default_val
         bounds = ((min(0, scores.min()), max(0, scores.max())),)
         optimizer = BasicVote.NAME2OPT[opt_name](tolerance=1e-9, max_iter=100)
         derivative = None
+        deltas = np.zeros(len(weights)) + 1e-9
         if opt_name == "dichotomy":
             derivative = lambda x: derivate(x, weights, scores, deltas, voting_resilience, default_val=default_val)
         function = None

@@ -65,7 +65,7 @@ def regularize_mask_comparability(mask, ratings, sm=1., rng=None):
 
 def generate_mask(
         n_unif, n_good, n_bad, n_alternatives,
-        n_byz=1, extreme=0.3, density=0.2, byz_density=1, rng=None
+        n_byz=1, extreme=0.8, density=0.2, byz_density=1, rng=None
 ):
     """ generates a mask with 3 notation styles for honest voters:
         - uniform votes
@@ -83,8 +83,9 @@ def generate_mask(
     mask[n_unif + n_good: n_unif + n_good + n_bad, :top] = rng.binomial(1, density, (n_bad, top))
     # byzantine
     mask[n_voters - n_byz:, :] = rng.binomial(1, byz_density, (n_byz, n_alternatives))
-
+    # print(mask)
     return regularize_mask(mask, rng=rng)
+
 
 
 def create_ortho(vect, rng):
@@ -101,13 +102,21 @@ def create_ortho(vect, rng):
 
 def generate_data(
         n_voters, n_extreme, n_alternatives, density,
-        noise_range=(0, 0), byz_density=1, byz_strat='anti', rng=None, **kwargs
+        noise_range=(0, 0), byz_density=1, byz_strat='anti', rng=None, distribution="normal", **kwargs
 ):
     """ generates random original preferences, ratings by voters and a mask """
-
-    original_preferences = rng.standard_cauchy(n_alternatives)
+    mask = generate_mask(
+        n_voters - n_extreme - 1, n_extreme//2, n_extreme//2, n_alternatives, 1,
+        density=density, byz_density=byz_density, rng=rng, **kwargs
+    )
+    if distribution == "normal":
+        original_preferences = rng.normal(size=n_alternatives)
+    elif distribution == "cauchy":
+        original_preferences = rng.standard_cauchy(n_alternatives)
+    elif distribution == "uniform":
+        original_preferences = rng.uniform(-1, 1, size=n_alternatives)
     original_preferences = (original_preferences - original_preferences.min()) / (
-            original_preferences.max() - original_preferences.min())
+                            original_preferences.max() - original_preferences.min())
     original_preferences = np.sort(original_preferences)
     ratings = np.zeros((n_voters, n_alternatives))
 
@@ -122,6 +131,20 @@ def generate_data(
                 ratings[voter] = - original_preferences
             elif byz_strat == 'ortho':
                 ratings[voter] = create_ortho(original_preferences, rng=rng)
+            elif byz_strat == 'focus':
+                count = np.sum(mask[:-1], axis=0)
+                for i, (true_pref, nb) in enumerate(zip(original_preferences, count)):
+                    if nb < density * (n_voters - 1):
+                        ratings[voter][i] = - np.sign(true_pref)
+                    else:
+                        ratings[voter][i] = 0
+            elif byz_strat == 'focus_anti':
+                count = np.sum(mask[:-1], axis=0)
+                for i, (true_pref, nb) in enumerate(zip(original_preferences, count)):
+                    if nb < density * (n_voters - 1):
+                        ratings[voter][i] = - true_pref
+                    else:
+                        ratings[voter][i] = 0
 
         else:
             scaling = rng.lognormal(1., 1.)
@@ -130,28 +153,24 @@ def generate_data(
             ratings[voter] = original_preferences + rng.normal(0, noises[voter], (n_alternatives,))  # Adding noise
             ratings[voter] = scaling * ratings[voter] + translation
 
-    mask = generate_mask(
-        n_voters - 2 * n_extreme - 1, n_extreme, n_extreme, n_alternatives, 1,
-        density=density, byz_density=byz_density, rng=rng
-    )
-
     return ratings, original_preferences, mask, noises / np.sqrt(2)
 
 
 def sparsify_mask(input_mask, density, n_extreme=0, extreme_perc=0.3, rng=None):
-    """ sparsify input mask """
-    n_voters, n_alternatives = input_mask.shape
-    # sparsification
-    sparsity = rng.binomial(1, density, (input_mask.shape))
-    new_mask = sparsity & input_mask
-    # zeroing out all nonextreme elternatives of extreme voters
-    extremity_nb = int(extreme_perc * n_alternatives)
-    extreme_idxs = np.random.randint(0, n_voters - 1, 2 * n_extreme)
-    high_idxs, low_idxs = extreme_idxs[:n_extreme], extreme_idxs[n_extreme:]
-    new_mask[high_idxs, :extremity_nb] = 0
-    new_mask[low_idxs, extremity_nb:] = 0
+    pass # DEPRECATED
+#     """ sparsify input mask """
+#     n_voters, n_alternatives = input_mask.shape
+#     # sparsification
+#     sparsity = rng.binomial(1, density, (input_mask.shape))
+#     new_mask = sparsity & input_mask
+#     # zeroing out all nonextreme elternatives of extreme voters
+#     extremity_nb = int(extreme_perc * n_alternatives)
+#     extreme_idxs = np.random.randint(0, n_voters - 1, 2 * n_extreme)
+#     high_idxs, low_idxs = extreme_idxs[:n_extreme], extreme_idxs[n_extreme:]
+#     new_mask[high_idxs, :extremity_nb] = 0
+#     new_mask[low_idxs, extremity_nb:] = 0
 
-    return new_mask
+#     return new_mask
 
 
 def generate_all_data(

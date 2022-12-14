@@ -8,7 +8,8 @@ def generate_voting_rights(n_voters, p_byzantine, rng=None, **kwargs):
     
     p_byzantine : importance of the byzantine voter
     """
-    voting_rights = rng.random(n_voters)
+    # voting_rights = rng.random(n_voters)
+    voting_rights = np.ones(n_voters)
 
     byzantine = n_voters - 1  # last position
     total_honest_rights = sum(voting_rights[:byzantine])
