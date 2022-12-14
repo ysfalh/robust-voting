@@ -12,7 +12,7 @@ def range_boxplot(l_lists, l_params, folder='exp1', title='', x_name=''):
     plt.ylabel('Correlation')
     # plt.legend()
     # plt.show()
-    plt.savefig(f'results/{folder}/boxplot-{title}.png')
+    plt.savefig(f'results/{folder}/boxplot-{title}.pdf')
     plt.clf()
 
 
@@ -37,17 +37,17 @@ def draw_curves(l_lists1, l_lists2, l_lists3, l_lists4, l_params, labels=('', ''
     range4 = np.array([1.96 * np.std(vals) / size for vals in l_lists4], dtype=object)
 
     plt.plot(l_params, vals1, label=labels[0], linestyle='dashdot', color='orange')
-    plt.fill_between(list(l_params), list(vals1 - range1), list(vals1 + range1), alpha=0.1)
+    plt.fill_between(list(l_params), list(vals1 - range1), list(vals1 + range1), alpha=0.1, color='orange')
     plt.plot(l_params, vals2, label=labels[1], linestyle='dotted', color='red')
-    plt.fill_between(list(l_params), list(vals2 - range2), list(vals2 + range2), alpha=0.1)
+    plt.fill_between(list(l_params), list(vals2 - range2), list(vals2 + range2), alpha=0.1, color='red')
     plt.plot(l_params, vals3, label=labels[2], linestyle='solid', color='green')
-    plt.fill_between(list(l_params), list(vals3 - range3), list(vals3 + range3), alpha=0.1)
+    plt.fill_between(list(l_params), list(vals3 - range3), list(vals3 + range3), alpha=0.1, color='green')
     plt.plot(l_params, vals4, label=labels[3], linestyle='dashed', color='blue')
-    plt.fill_between(list(l_params), list(vals4 - range4), list(vals4 + range4), alpha=0.1)
+    plt.fill_between(list(l_params), list(vals4 - range4), list(vals4 + range4), alpha=0.1, color='blue')
 
     plt.title(title)
     plt.xlabel(x_name)
     plt.ylabel('Correlation')
     plt.legend()
     # plt.show()
-    plt.savefig(f'results/{folder}/plot-{title}.png')
+    plt.savefig(f'results/{folder}/plot-{title}.pdf')
