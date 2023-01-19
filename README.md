@@ -1,6 +1,6 @@
 # Robust Sparse Voting
 
-### Important: if you would like to download the full repository, download the file "robust-voting-master.zip".
+### Important: if you would like to download the full repository, download the file "robust-voting.zip".
 
 Use the following command line to run the experiments:
 
