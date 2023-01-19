@@ -3,8 +3,9 @@ import copy
 
 from tests.compare import generate_all_data, multiple_experiments
 
-N_PROC = 100
-# N_PROC = os.cpu_count()
+N_PROC = 1  # number of processors to use
+
+# N_PROC = os.cpu_count() # uncomment to use all processors available
 
 DEFAULT = {
         'n_attempts': 20, 'n_voters': 151, 'n_extreme': 0, 'extreme': 0, 'n_alternatives': 300, 'density': 0.1,
