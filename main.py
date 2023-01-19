@@ -9,7 +9,7 @@ N_PROC = 100
 DEFAULT = {
         'n_attempts': 20, 'n_voters': 151, 'n_extreme': 0, 'extreme': 0, 'n_alternatives': 300, 'density': 0.1,
         'noise_range': (0, 0), 'p_byzantine': 0., 'byz_density': 1, 'byz_strat': 'random', 'voting_resilience': 10,
-        'transformation_name': "min-max", 'sm': 0, 'distribution': 'uniform', 'n_proc': N_PROC
+        'transformation_name': "min-max", 'sm': 0, 'distribution': 'normal', 'n_proc': N_PROC
     }
 DEFAULT_EXTR = copy.deepcopy(DEFAULT)
 DEFAULT_EXTR['n_extreme'] = 150  # the Byzantine voter is not counted
@@ -21,12 +21,12 @@ EXTR_EXP = {'name': 'extreme', 'params': [0.6, 0.7, 0.8, 0.9, 1]}
 
 
 EXPERIMENTS = [
-    # # density
-    # (DEFAULT, DENS_EXP),
-    # (DEFAULT_EXTR, DENS_EXP),
-    # # p_byzantine  
-    # (DEFAULT, BYZ_EXP),
-    # (DEFAULT_EXTR, BYZ_EXP),
+    # density
+    (DEFAULT, DENS_EXP),
+    (DEFAULT_EXTR, DENS_EXP),
+    # p_byzantine  
+    (DEFAULT, BYZ_EXP),
+    (DEFAULT_EXTR, BYZ_EXP),
     # extreme
     (DEFAULT_EXTR, EXTR_EXP), 
 ]
