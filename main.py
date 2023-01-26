@@ -16,7 +16,7 @@ DEFAULT_EXTR = copy.deepcopy(DEFAULT)
 DEFAULT_EXTR['n_extreme'] = 150  # the Byzantine voter is not counted
 DEFAULT_EXTR['extreme'] = 0.8
 
-DENS_EXP = {'name': 'density', 'params': [0.02, 0.04, 0.06, 0.08, 0.1, 0.12, 0.14, 0.16]}
+DENS_EXP = {'name': 'density', 'params': [0.02, 0.04, 0.06, 0.08, 0.1, 0.12, 0.14, 0.16, 0.18, 0.20]}
 BYZ_EXP = {'name': 'p_byzantine', 'params': [0, 0.02, 0.04, 0.06, 0.08, 0.1, 0.12, 0.14]}
 EXTR_EXP = {'name': 'extreme', 'params': [0.6, 0.7, 0.8, 0.9, 1]}
 
