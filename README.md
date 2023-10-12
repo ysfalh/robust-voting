@@ -14,21 +14,21 @@ Otherwise, the default parameters will be used.
 
 ### Specs :
 
-Intel(R) Core(TM) i5-8250U CPU @ 1.60GHz
-RAM : 8.00 Go
+Intel(R) Core(TM) i5-8250U CPU @ 1.60GHz \\
+RAM : 8.00 Go 
 
 
 ### Librairies : 
 
-math
-os
-json
-copy
-shutil
-tqdm
-multiprocess
-numpy 
-itertools
-pandas
-matplotlib
-scipy
+math \\
+os \\
+json \\
+copy \\
+shutil \\
+tqdm \\
+multiprocess \\
+numpy \\
+itertools \\
+pandas \\
+matplotlib \\
+scipy \\
