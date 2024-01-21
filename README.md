@@ -1,7 +1,5 @@
 # Robust Sparse Voting
 
-### Important: if you would like to download the full repository, download the file "robust-voting.zip".
-
 Use the following command line to run the experiments:
 
 ```bash
@@ -18,7 +16,7 @@ Intel(R) Core(TM) i5-8250U CPU @ 1.60GHz \\
 RAM : 8.00 Go 
 
 
-### Librairies : 
+### Libraries : 
 
 math \\
 os \\
